@@ -1,26 +1,53 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getCompetitionById } from '@/lib/mock-data/competitions';
-import { ArrowLeft, Trophy, Medal } from 'lucide-react';
+import { ArrowLeft, Trophy, Medal, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
 
 export default function LeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const competition = getCompetitionById(id);
+  const [competition, setCompetition] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const leaderboard = [
-    { rank: 1, team: 'Code Warriors', score: 2850, members: 3, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team1' },
-    { rank: 2, team: 'Algorithm Masters', score: 2720, members: 3, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team2' },
-    { rank: 3, team: 'Data Wizards', score: 2650, members: 2, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team3' },
-    { rank: 4, team: 'Binary Beasts', score: 2480, members: 3, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team4' },
-    { rank: 5, team: 'Logic Lords', score: 2350, members: 2, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team5' },
-  ];
+  useEffect(() => {
+    const fetchLeaderboardData = async () => {
+      try {
+        setLoading(true);
+        const [compRes, leaderRes] = await Promise.all([
+          fetch(`/api/competitions/${id}`),
+          fetch(`/api/competitions/${id}/leaderboard`),
+        ]);
+
+        const compData = await compRes.json();
+        const leaderData = await leaderRes.json();
+
+        if (compData.success) setCompetition(compData.data);
+        if (leaderData.success) setLeaderboard(leaderData.data);
+      } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+        toast.error('Failed to load leaderboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboardData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!competition) {
     return <div className="w-full">Không tìm thấy cuộc thi</div>;

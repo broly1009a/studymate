@@ -1,23 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPartners } from '@/lib/mock-data/partners';
-import { Calendar, Clock, Users, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { vi } from '@/lib/i18n/vi';
 
+interface Partner {
+  _id: string;
+  id?: string;
+  name: string;
+  avatar: string;
+  major: string;
+  rating: number;
+  availability: string[];
+  subjects: string[];
+}
+
 export default function ScheduleSessionPage() {
   const router = useRouter();
-  const partners = getPartners().slice(0, 5);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     partnerId: '',
@@ -28,7 +40,28 @@ export default function ScheduleSessionPage() {
     notes: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/partners?limit=5');
+        if (!response.ok) {
+          throw new Error('Failed to fetch partners');
+        }
+        const data = await response.json();
+        setPartners(data.data || []);
+      } catch (error: any) {
+        toast.error('Không thể tải danh sách đối tác');
+        console.error('Error fetching partners:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPartners();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.partnerId || !formData.subject || !formData.date || !formData.time) {
@@ -36,11 +69,37 @@ export default function ScheduleSessionPage() {
       return;
     }
 
-    toast.success(vi.matches.schedule.success);
-    router.push('/matches/sessions');
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/study-sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          partnerId: formData.partnerId,
+          subject: formData.subject,
+          scheduledAt: new Date(`${formData.date}T${formData.time}`),
+          duration: parseInt(formData.duration),
+          notes: formData.notes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      toast.success(vi.matches.schedule.success);
+      router.push('/matches/sessions');
+    } catch (error: any) {
+      toast.error('Không thể tạo phiên học');
+      console.error('Error creating session:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const selectedPartner = partners.find(p => p.id === formData.partnerId);
+  const selectedPartner = partners.find(p => p._id === formData.partnerId);
 
   return (
     <div className="w-full">
@@ -72,13 +131,14 @@ export default function ScheduleSessionPage() {
                   <Select
                     value={formData.partnerId}
                     onValueChange={(value) => setFormData({ ...formData, partnerId: value })}
+                    disabled={loading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a partner" />
+                      <SelectValue placeholder={loading ? "Đang tải..." : "Select a partner"} />
                     </SelectTrigger>
                     <SelectContent>
                       {partners.map((partner) => (
-                        <SelectItem key={partner.id} value={partner.id}>
+                        <SelectItem key={partner._id} value={partner._id}>
                           <div className="flex items-center gap-2">
                             {partner.name} - {partner.rating}⭐
                           </div>
@@ -164,16 +224,17 @@ export default function ScheduleSessionPage() {
 
                 {/* Submit */}
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1">
+                  <Button type="submit" className="flex-1" disabled={submitting || loading}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Session
+                    {submitting ? 'Đang tạo...' : 'Lên lịch phiên học'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => router.back()}
+                    disabled={submitting}
                   >
-                    Cancel
+                    Hủy
                   </Button>
                 </div>
               </form>

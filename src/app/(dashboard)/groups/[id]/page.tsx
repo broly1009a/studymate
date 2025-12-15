@@ -1,12 +1,11 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getGroupById, getGroupMembers, getGroupEvents } from '@/lib/mock-data/groups';
-import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -14,10 +13,47 @@ import { format } from 'date-fns';
 
 export default function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
-  const members = group ? getGroupMembers(group.id) : [];
-  const events = group ? getGroupEvents(group.id) : [];
+  const [group, setGroup] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('about');
+
+  useEffect(() => {
+    const fetchGroupData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, membersRes, eventsRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/members`),
+          fetch(`/api/groups/${id}/events`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const membersData = await membersRes.json();
+        const eventsData = await eventsRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (membersData.success) setMembers(membersData.data);
+        if (eventsData.success) setEvents(eventsData.data);
+      } catch (error) {
+        console.error('Failed to fetch group data:', error);
+        toast.error('Failed to load group data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroupData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return (

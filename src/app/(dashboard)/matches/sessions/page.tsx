@@ -1,23 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getStudySessions } from '@/lib/mock-data/partners';
-import { Calendar, Clock, Star, CheckCircle2, XCircle } from 'lucide-react';
+import { Calendar, Clock, Star, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
 
+interface StudySession {
+  _id: string;
+  id?: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  subject: string;
+  scheduledAt: string;
+  duration: number;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  rating?: number;
+  review?: string;
+}
+
 export default function PartnerSessionsPage() {
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'completed'>('all');
-  const sessions = getStudySessions(filter === 'all' ? undefined : filter);
+  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleCancelSession = (sessionId: string) => {
-    toast.success('Đã hủy phiên học');
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setLoading(true);
+        const params = filter !== 'all' ? `?status=${filter}` : '';
+        const response = await fetch(`/api/study-sessions${params}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sessions');
+        }
+        const data = await response.json();
+        setSessions(data.data || []);
+      } catch (error: any) {
+        toast.error('Không thể tải phiên học');
+        console.error('Error fetching sessions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, [filter]);
+
+  const handleCancelSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/study-sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to cancel');
+      toast.success('Đã hủy phiên học');
+      setSessions(sessions.map(s => s._id === sessionId ? { ...s, status: 'cancelled' } : s));
+    } catch (error: any) {
+      toast.error('Không thể hủy phiên học');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -95,7 +143,14 @@ export default function PartnerSessionsPage() {
 
       {/* Sessions List */}
       <div className="space-y-4">
-        {sessions.length === 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+              <h3 className="text-lg font-semibold mb-2">Đang tải phiên học...</h3>
+            </CardContent>
+          </Card>
+        ) : sessions.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -107,17 +162,17 @@ export default function PartnerSessionsPage() {
                   ? "You haven't completed any sessions yet"
                   : "No sessions to display"}
               </p>
-              <Link href="/partners">
+              <Link href="/matches">
                 <Button>Find Study Partners</Button>
               </Link>
             </CardContent>
           </Card>
         ) : (
           sessions.map((session) => (
-            <Card key={session.id}>
+            <Card key={session._id || session.id}>
               <CardHeader>
                 <div className="flex items-start gap-4">
-                  <Link href={`/partners/${session.partnerId}`}>
+                  <Link href={`/matches/${session.partnerId}`}>
                     <Image
                       src={session.partnerAvatar}
                       alt={session.partnerName}
@@ -129,7 +184,7 @@ export default function PartnerSessionsPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <Link href={`/partners/${session.partnerId}`}>
+                        <Link href={`/matches/${session.partnerId}`}>
                           <CardTitle className="text-lg hover:underline">
                             {session.partnerName}
                           </CardTitle>
@@ -191,7 +246,7 @@ export default function PartnerSessionsPage() {
                       </Button>
                     </Link>
                     <Button
-                      onClick={() => handleCancelSession(session.id)}
+                      onClick={() => handleCancelSession(session._id || session.id)}
                       variant="outline"
                       className="flex-1"
                     >

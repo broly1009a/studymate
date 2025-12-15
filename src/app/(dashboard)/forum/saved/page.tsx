@@ -1,31 +1,48 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bookmark, MessageSquare, ThumbsUp } from 'lucide-react';
+import { Bookmark, MessageSquare, ThumbsUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
+import { toast } from 'sonner';
+
+interface SavedQuestion {
+  _id: string;
+  id?: string;
+  title: string;
+  tags: string[];
+  votes: number;
+  answers: number;
+  savedAt: string;
+}
 
 export default function SavedQuestionsPage() {
-  const savedQuestions = [
-    {
-      id: '1',
-      title: 'How to implement binary search tree?',
-      tags: ['algorithms', 'data-structures', 'trees'],
-      votes: 12,
-      answers: 5,
-      savedAt: '2025-10-25T10:00:00',
-    },
-    {
-      id: '2',
-      title: 'Understanding recursion in programming',
-      tags: ['programming', 'recursion', 'algorithms'],
-      votes: 23,
-      answers: 8,
-      savedAt: '2025-10-24T14:30:00',
-    },
-  ];
+  const [savedQuestions, setSavedQuestions] = useState<SavedQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSavedQuestions = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/forum-questions/saved');
+        if (!response.ok) {
+          throw new Error('Failed to fetch saved questions');
+        }
+        const data = await response.json();
+        setSavedQuestions(data.data || []);
+      } catch (error: any) {
+        toast.error('Không thể tải câu hỏi đã lưu');
+        console.error('Error fetching saved questions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSavedQuestions();
+  }, []);
 
   return (
     <div className="w-full">
@@ -66,7 +83,14 @@ export default function SavedQuestionsPage() {
       </div>
 
       <div className="space-y-4">
-        {savedQuestions.length === 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+              <h3 className="text-lg font-semibold mb-2">Đang tải câu hỏi đã lưu...</h3>
+            </CardContent>
+          </Card>
+        ) : savedQuestions.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Bookmark className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -83,7 +107,7 @@ export default function SavedQuestionsPage() {
           </Card>
         ) : (
           savedQuestions.map((question) => (
-            <Card key={question.id}>
+            <Card key={question.id || question._id}>
               <CardContent className="pt-6">
                 <div className="flex gap-4">
                   <div className="flex flex-col items-center gap-2 text-center min-w-[80px]">
@@ -98,7 +122,7 @@ export default function SavedQuestionsPage() {
                   </div>
                   
                   <div className="flex-1">
-                    <Link href={`/forum/${question.id}`}>
+                    <Link href={`/forum/${question.id || question._id}`}>
                       <h3 className="text-lg font-medium hover:text-primary cursor-pointer">
                         {question.title}
                       </h3>

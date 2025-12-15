@@ -28,19 +28,23 @@ function VerifyEmailContent() {
     // Verify email with token
     const verifyEmail = async () => {
       try {
-        // Mock API call - replace with actual API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Simulate random success/failure for demo
-        const isSuccess = Math.random() > 0.3;
-        
-        if (isSuccess) {
-          setStatus('success');
-          toast.success(vi.auth.verifyEmail.success);
-        } else {
+        const response = await fetch('/api/auth/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
           setStatus('error');
-          toast.error(vi.auth.verifyEmail.error);
+          toast.error(error.error || vi.auth.verifyEmail.error);
+          return;
         }
+
+        setStatus('success');
+        toast.success(vi.auth.verifyEmail.success);
       } catch (error) {
         setStatus('error');
         toast.error(vi.auth.verifyEmail.error);
@@ -66,8 +70,27 @@ function VerifyEmailContent() {
     try {
       setIsResending(true);
 
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get email from localStorage or use a fallback
+      const storedUser = localStorage.getItem('auth-user');
+      const userEmail = storedUser ? JSON.parse(storedUser).email : '';
+
+      if (!userEmail) {
+        toast.error('Không tìm thấy địa chỉ email. Vui lòng đăng nhập lại.');
+        return;
+      }
+
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Gửi email thất bại');
+      }
 
       toast.success('Email xác thực đã được gửi! Vui lòng kiểm tra hộp thư.');
     } catch (error) {

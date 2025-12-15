@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPartners, getPartnerStats } from '@/lib/mock-data/partners';
-import { Search, Users, Star, Clock, MessageCircle, ChevronDown } from 'lucide-react';
+import { Search, Users, Star, Clock, MessageCircle, ChevronDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -16,16 +15,74 @@ export default function FindPartnersPage() {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
-  const [industryFilter, setIndustryFilter] = useState('all'); // New state for the industry filter
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Dropdown state
-  const [activeCategory, setActiveCategory] = useState<string | null>(null); // Active category for subcategories
-  const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
+  const [industryFilter, setIndustryFilter] = useState('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [partners, setPartners] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const partners = getPartners({
-    subject: subjectFilter,
-    minRating: ratingFilter ? parseFloat(ratingFilter) : undefined,
-  });
-  const stats = getPartnerStats();
+  // Fetch partners from API
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: '9',
+        });
+
+        if (searchQuery) {
+          params.append('search', searchQuery);
+        }
+
+        if (subjectFilter !== 'all') {
+          params.append('subject', subjectFilter);
+        }
+
+        if (ratingFilter !== 'all') {
+          params.append('minRating', ratingFilter);
+        }
+
+        const response = await fetch(`/api/partners?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setPartners(data.data);
+          setTotalPages(data.pagination.pages);
+        }
+      } catch (error) {
+        console.error('Failed to fetch partners:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchPartners, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, subjectFilter, ratingFilter, page]);
+
+  // Fetch stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/partners/stats');
+        const data = await response.json();
+
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   // Khan Academy style categories
   const mainCategories = [
@@ -60,53 +117,6 @@ export default function FindPartnersPage() {
     },
   ];
 
-  // Calculate category counts
-  const getCategoryCount = (categoryId: string) => {
-    if (categoryId === 'all') return partners.length;
-
-    return partners.filter((partner) => {
-      switch (categoryId) {
-        case 'technology':
-          return partner.major.includes('Khoa học Máy tính') ||
-                 partner.major.includes('Computer Science') ||
-                 partner.subjects.some(s => s.includes('Computer') || s.includes('Programming'));
-        case 'design':
-          return partner.major.includes('Thiết kế') ||
-                 partner.subjects.some(s => s.includes('Design') || s.includes('Art'));
-        case 'business':
-          return partner.major.includes('Kinh doanh') ||
-                 partner.major.includes('Marketing') ||
-                 partner.subjects.some(s => s.includes('Business') || s.includes('Marketing'));
-        case 'languages':
-          return partner.major.includes('Ngôn ngữ') ||
-                 partner.subjects.some(s => s.includes('English') || s.includes('Language'));
-        case 'science':
-          return partner.major.includes('Vật lý') ||
-                 partner.major.includes('Sinh học') ||
-                 partner.subjects.some(s => s.includes('Physics') || s.includes('Biology'));
-        default:
-          return false;
-      }
-    }).length;
-  };
-
-  const filteredPartners = partners.filter((partner) => {
-    // Apply search filter
-    const matchesSearch =
-      partner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.bio.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.subjects.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    // Apply category filter (if any category is selected)
-    const matchesCategory = true; // Simplified for now
-
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleSelectPartner = (selected: string[]) => {
-    setSelectedPartners(selected);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-500';
@@ -131,7 +141,7 @@ export default function FindPartnersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số bạn học</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPartners}</div>
+            <div className="text-2xl font-bold">{stats?.totalPartners || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -139,7 +149,7 @@ export default function FindPartnersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Đang hoạt động</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.activePartners}</div>
+            <div className="text-2xl font-bold text-green-500">{stats?.activePartners || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -147,7 +157,7 @@ export default function FindPartnersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Đánh giá TB</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.averageRating.toFixed(1)} ⭐</div>
+            <div className="text-2xl font-bold">{stats?.averageRating?.toFixed(1) || 0} ⭐</div>
           </CardContent>
         </Card>
         <Card>
@@ -155,7 +165,7 @@ export default function FindPartnersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Phiên học của bạn</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completedSessions}</div>
+            <div className="text-2xl font-bold">{stats?.completedSessions || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -261,87 +271,118 @@ export default function FindPartnersPage() {
       </div>
 
       {/* Partners Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPartners.map((partner) => (
-          <Link key={partner.id} href={`/matches/${partner.id}`}>
-            <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <div className="relative w-16 h-16 flex-shrink-0">
-                    <Image
-                      src={partner.avatar}
-                      alt={partner.name}
-                      width={64}
-                      height={64}
-                      className="rounded-full object-cover w-full h-full"
-                    />
-                    <div
-                      className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-background ${getStatusColor(partner.status)}`}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate">{partner.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                        <span className="font-medium">{partner.rating}</span>
-                        <span className="text-muted-foreground">({partner.reviewsCount})</span>
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {partners.map((partner) => (
+              <Link key={partner._id} href={`/matches/${partner._id}`}>
+                <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <Image
+                          src={partner.avatar || '/default-avatar.png'}
+                          alt={partner.name}
+                          width={64}
+                          height={64}
+                          className="rounded-full object-cover w-full h-full"
+                        />
+                        <div
+                          className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-background ${getStatusColor(partner.status)}`}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{partner.name}</CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                            <span className="font-medium">{partner.rating || 0}</span>
+                            <span className="text-muted-foreground">({partner.reviewsCount || 0})</span>
+                          </div>
+                        </div>
+                        {partner.matchScore && (
+                          <Badge className="mt-2 bg-blue-500/10 text-blue-500">
+                            {partner.matchScore}% Match
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    {partner.matchScore && (
-                      <Badge className="mt-2 bg-blue-500/10 text-blue-500">
-                        {partner.matchScore}% Match
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">{partner.bio}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-2">{partner.bio}</p>
 
-                {/* Subjects */}
-                <div>
-                  <div className="text-xs text-muted-foreground mb-2">Môn học</div>
-                  <div className="flex flex-wrap gap-1">
-                    {partner.subjects.slice(0, 3).map((subject) => (
-                      <Badge key={subject} variant="secondary" className="text-xs">
-                        {subject}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    {/* Subjects */}
                     <div>
-                      <div className="text-xs text-muted-foreground">Giờ học</div>
-                      <div className="font-medium">{partner.studyHours}h</div>
+                      <div className="text-xs text-muted-foreground mb-2">Môn học</div>
+                      <div className="flex flex-wrap gap-1">
+                        {(partner.subjects || []).slice(0, 3).map((subject: string) => (
+                          <Badge key={subject} variant="secondary" className="text-xs">
+                            {subject}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="text-xs text-muted-foreground">Phiên học</div>
-                      <div className="font-medium">{partner.sessionsCompleted}</div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Action Button */}
-                <Button className="w-full" size="sm">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Gửi yêu cầu
-                </Button>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-xs text-muted-foreground">Giờ học</div>
+                          <div className="font-medium">{partner.studyHours || 0}h</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-xs text-muted-foreground">Phiên học</div>
+                          <div className="font-medium">{partner.sessionsCompleted || 0}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button className="w-full" size="sm">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Gửi yêu cầu
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mb-6">
+              <Button
+                variant="outline"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+              >
+                Trước
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Trang {page} của {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+              >
+                Sau
+              </Button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Empty State */}
-      {filteredPartners.length === 0 && (
+      {!loading && partners.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -351,8 +392,11 @@ export default function FindPartnersPage() {
             </p>
             <Button onClick={() => {
               setSearchQuery('');
+              setSubjectFilter('all');
+              setRatingFilter('all');
               setIsDropdownOpen(false);
               setActiveCategory(null);
+              setPage(1);
             }}>
               Xóa bộ lọc
             </Button>

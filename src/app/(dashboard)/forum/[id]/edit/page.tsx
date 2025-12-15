@@ -1,32 +1,82 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { getQuestionById } from '@/lib/mock-data/forum';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+interface Question {
+  _id: string;
+  id?: string;
+  title: string;
+  content: string;
+  tags: string[];
+}
+
 export default function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const question = getQuestionById(id);
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
-    title: question?.title || '',
-    content: question?.content || '',
-    tags: question?.tags || [],
+    title: '',
+    content: '',
+    tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
 
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/forum-questions/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch question');
+        }
+        const data = await response.json();
+        const fetchedQuestion = data.data || data;
+        setQuestion(fetchedQuestion);
+        setFormData({
+          title: fetchedQuestion.title || '',
+          content: fetchedQuestion.content || '',
+          tags: fetchedQuestion.tags || [],
+        });
+      } catch (error: any) {
+        toast.error('Không thể tải câu hỏi');
+        console.error('Error fetching question:', error);
+        router.push('/forum');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestion();
+  }, [id, router]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Đang tải câu hỏi...</h3>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!question) {
-    return <div className="w-full">Question not found</div>;
+    return <div className="w-full">Không tìm thấy câu hỏi</div>;
   }
 
   const handleAddTag = () => {
@@ -46,16 +96,40 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.content) {
-      toast.error('Please fill in all required fields');
+      toast.error('Vui lòng điền tất cả các trường bắt buộc');
       return;
     }
 
-    toast.success('Question updated successfully!');
-    router.push(`/forum/${id}`);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/forum-questions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          content: formData.content,
+          tags: formData.tags,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update question');
+      }
+
+      toast.success('Câu hỏi đã được cập nhật thành công!');
+      router.push(`/forum/${id}`);
+    } catch (error: any) {
+      toast.error('Không thể cập nhật câu hỏi');
+      console.error('Error updating question:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -122,9 +196,18 @@ export default function EditQuestionPage({ params }: { params: Promise<{ id: str
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">Save Changes</Button>
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  'Lưu thay đổi'
+                )}
+              </Button>
               <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
+                Hủy
               </Button>
             </div>
           </form>

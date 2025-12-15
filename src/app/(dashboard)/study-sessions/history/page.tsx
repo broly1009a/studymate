@@ -1,29 +1,112 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getSessions, getSubjects, getWeeklySessionData, getSubjectDistribution } from '@/lib/mock-data/sessions';
 import { Calendar, Clock, TrendingUp, Award } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import Link from 'next/link';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
+
+interface Session {
+  _id: string;
+  topic: string;
+  subjectName: string;
+  duration: number;
+  focusScore: number;
+  pomodoroCount: number;
+  startTime: string;
+}
+
+interface WeeklyData {
+  day: string;
+  hours: number;
+}
+
+interface SubjectDistribution {
+  subject: string;
+  hours: number;
+  percentage: number;
+  color: string;
+}
+
+interface HistoryStats {
+  thisWeekSessions: number;
+  totalHoursThisWeek: number;
+  avgFocusThisWeek: number;
+  bestDay: string;
+  bestDayHours: number;
+}
 
 export default function SessionHistoryPage() {
-  const sessions = getSessions();
-  const subjects = getSubjects();
-  const weeklyData = getWeeklySessionData();
-  const subjectDistribution = getSubjectDistribution();
-
-  const thisWeekSessions = sessions.filter((session) => {
-    const sessionDate = new Date(session.startTime);
-    const weekStart = startOfWeek(new Date());
-    const weekEnd = endOfWeek(new Date());
-    return sessionDate >= weekStart && sessionDate <= weekEnd;
+  const { user } = useAuth();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
+  const [stats, setStats] = useState<HistoryStats>({
+    thisWeekSessions: 0,
+    totalHoursThisWeek: 0,
+    avgFocusThisWeek: 0,
+    bestDay: 'N/A',
+    bestDayHours: 0,
   });
+  const [subjectDistribution, setSubjectDistribution] = useState<SubjectDistribution[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalHoursThisWeek = thisWeekSessions.reduce((sum, s) => sum + s.duration, 0) / 60;
-  const avgFocusThisWeek = thisWeekSessions.length > 0
-    ? thisWeekSessions.reduce((sum, s) => sum + (s.focusScore || 0), 0) / thisWeekSessions.length
-    : 0;
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch sessions
+        const sessionsRes = await fetch(`/api/study-records?userId=${user.id}`);
+        if (sessionsRes.ok) {
+          const sessionsData = await sessionsRes.json();
+          setSessions(sessionsData.data || []);
+        }
+
+        // Fetch weekly data
+        const weeklyRes = await fetch(`/api/study-records/weekly?userId=${user.id}`);
+        if (weeklyRes.ok) {
+          const weeklyStats = await weeklyRes.json();
+          setWeeklyData(weeklyStats.data || []);
+        }
+
+        // Fetch history stats
+        const statsRes = await fetch(`/api/study-records/history-stats?userId=${user.id}`);
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        // Fetch subject distribution
+        const subjectRes = await fetch(`/api/study-records/subject-distribution?userId=${user.id}`);
+        if (subjectRes.ok) {
+          const subjectData = await subjectRes.json();
+          setSubjectDistribution(subjectData.data || []);
+        }
+      } catch (error: any) {
+        toast.error('Failed to load history');
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.id]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading history...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -42,7 +125,7 @@ export default function SessionHistoryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{thisWeekSessions.length}</div>
+            <div className="text-2xl font-bold">{stats.thisWeekSessions}</div>
             <p className="text-xs text-muted-foreground">sessions</p>
           </CardContent>
         </Card>
@@ -54,7 +137,7 @@ export default function SessionHistoryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalHoursThisWeek.toFixed(1)}h</div>
+            <div className="text-2xl font-bold">{stats.totalHoursThisWeek.toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">this week</p>
           </CardContent>
         </Card>
@@ -66,7 +149,7 @@ export default function SessionHistoryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{avgFocusThisWeek.toFixed(0)}%</div>
+            <div className="text-2xl font-bold">{stats.avgFocusThisWeek.toFixed(0)}%</div>
             <p className="text-xs text-muted-foreground">this week</p>
           </CardContent>
         </Card>
@@ -78,8 +161,8 @@ export default function SessionHistoryPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Mon</div>
-            <p className="text-xs text-muted-foreground">4.5 hours</p>
+            <div className="text-2xl font-bold">{stats.bestDay}</div>
+            <p className="text-xs text-muted-foreground">{stats.bestDayHours.toFixed(1)} hours</p>
           </CardContent>
         </Card>
       </div>
@@ -120,20 +203,15 @@ export default function SessionHistoryPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sessions.slice(0, 10).map((session) => {
-                  const subject = subjects.find((s) => s.id === session.subjectId);
-                  return (
-                    <Link
-                      key={session.id}
-                      href={`/study-sessions/${session.id}`}
-                      className="block"
-                    >
+                {sessions.slice(0, 10).map((session) => (
+                  <Link
+                    key={session._id}
+                    href={`/study-sessions/${session._id}`}
+                    className="block"
+                  >
                       <div className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-                          style={{ backgroundColor: subject?.color + '20' }}
-                        >
-                          {subject?.icon}
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-blue-100">
+                          📚
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{session.topic}</div>
@@ -146,14 +224,11 @@ export default function SessionHistoryPage() {
                         </div>
                       </div>
                     </Link>
-                  );
-                })}
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Subject Distribution */}
+ {/* Subject Distribution */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -166,9 +241,9 @@ export default function SessionHistoryPage() {
                   const total = subjectDistribution.reduce((sum, s) => sum + (s.hours || 0), 0);
                   const percentage = ((item.hours || 0) / total) * 100;
                   return (
-                    <div key={item.name} className="space-y-2">
+                    <div key={item.subject} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{item.name}</span>
+                        <span className="font-medium">{item.subject}</span>
                         <span className="text-muted-foreground">{(item.hours || 0).toFixed(1)}h</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -224,6 +299,7 @@ export default function SessionHistoryPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     </div>

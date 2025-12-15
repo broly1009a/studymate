@@ -1,24 +1,74 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserPlus, MessageCircle, MoreHorizontal, Camera } from 'lucide-react';
+import { UserPlus, MessageCircle, MoreHorizontal, Camera, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-
-const profile = {
-  name: 'Duy Anh',
-  username: '@Duy Anh',
-  tagline: 'Tôi là vua lập trình, bậc thầy kinh tế',
-  followers: 836,
-  following: 239,
-  avatar: '/avatars/default-avatar.png',
-  cover: '/images/profile-cover.jpg',
-};
+import { useAuth } from '@/hooks/use-auth';
+import { getUserProfile, getUserStats } from '@/lib/api/profile-client';
+import type { UserProfile } from '@/types/profile';
 
 const tabs = ['Bài viết', 'Giới thiệu', 'Reels', 'Ảnh', 'Nhóm', 'Sự kiện', 'Xem thêm'];
 
 export default function FacebookLikeProfile() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (!user) return;
+
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          setError('No authentication token found');
+          return;
+        }
+
+        const [profileRes, statsRes] = await Promise.all([
+          getUserProfile(token),
+          getUserStats(token),
+        ]);
+
+        setProfile(profileRes.profile);
+        setStats(statsRes.stats);
+        setError(null);
+      } catch (err) {
+        setError((err as Error).message || 'Failed to load profile');
+        console.error('Profile error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [user, authLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !profile || !stats) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">{error || 'Failed to load profile'}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* =================== COVER + AVATAR =================== */}
@@ -26,7 +76,7 @@ export default function FacebookLikeProfile() {
         {/* Cover */}
         <div
           className="h-60 md:h-72 w-full bg-center bg-cover"
-          style={{ backgroundImage: `url(${profile.cover})` }}
+          style={{ backgroundImage: `url(${profile.coverPhoto})` }}
         />
         {/* Fade dưới cover (tùy thích) */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
@@ -56,27 +106,29 @@ export default function FacebookLikeProfile() {
         {/* mt-* để tách khỏi cover; pl-* để chừa chỗ avatar bên trái */}
         <div className="mt-24 pl-40 md:mt-28 md:pl-56 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">{profile.name}</h1>
-            <div className="text-muted-foreground -mt-1">{profile.username}</div>
+            <h1 className="text-2xl md:text-3xl font-bold">{profile.fullName}</h1>
+            <div className="text-muted-foreground -mt-1">@{profile.username}</div>
 
-            <p className="mt-2">{profile.tagline}</p>
+            <p className="mt-2">{profile.bio}</p>
 
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <span>Computer Science at MIT</span>
+              <span>{profile.education.major} at {profile.education.institution}</span>
               <span>Joined January 2023</span>
             </div>
 
             {/* Chips ngôn ngữ */}
             <div className="mt-2 flex flex-wrap gap-2">
-              <span className="px-3 py-1 rounded-full bg-muted text-sm">English (native)</span>
-              <span className="px-3 py-1 rounded-full bg-muted text-sm">Spanish (conversational)</span>
-              <span className="px-3 py-1 rounded-full bg-muted text-sm">French (basic)</span>
+              {profile.languages.map((lang) => (
+                <span key={lang.code} className="px-3 py-1 rounded-full bg-muted text-sm">
+                  {lang.name} ({lang.proficiency})
+                </span>
+              ))}
             </div>
           </div>
 
           {/* Actions bên phải */}
           <div className="flex items-center gap-2">
-            <Button>Edit Profile</Button>
+            <Button>Chỉnh sửa</Button>
             <Button variant="ghost" size="icon">
               <MoreHorizontal className="h-5 w-5" />
             </Button>
@@ -103,6 +155,50 @@ export default function FacebookLikeProfile() {
           </div>
         </div>
       </div>
+
+      {/* =================== STATS =================== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Reputation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.reputation}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Badges</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.badges}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Followers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.followers}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Following</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.following}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
 
       {/* =================== CONTENT (TRÁI: INFO, PHẢI: BÀI VIẾT) =================== */}
       <div className="w-full">

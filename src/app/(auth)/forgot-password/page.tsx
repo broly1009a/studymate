@@ -36,8 +36,18 @@ export default function ForgotPasswordPage() {
     try {
       setIsLoading(true);
 
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to request password reset');
+      }
 
       setEmailSent(true);
       toast.success(vi.auth.forgotPassword.success);

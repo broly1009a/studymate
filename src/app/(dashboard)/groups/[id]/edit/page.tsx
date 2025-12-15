@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { getGroupById } from '@/lib/mock-data/groups';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -18,25 +17,83 @@ import { vi } from '@/lib/i18n/vi';
 export default function EditGroupPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const group = getGroupById(id);
+  const [group, setGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: group?.name || '',
-    description: group?.description || '',
-    category: group?.category || '',
-    visibility: (group?.visibility || 'public') as 'public' | 'private',
-    maxMembers: group?.maxMembers.toString() || '30',
+    name: '',
+    description: '',
+    category: '',
+    visibility: 'public' as 'public' | 'private',
+    maxMembers: '30',
     autoApprove: true,
   });
+
+  useEffect(() => {
+    const fetchGroup = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/groups/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          const groupData = data.data;
+          setGroup(groupData);
+          setFormData({
+            name: groupData.name || '',
+            description: groupData.description || '',
+            category: groupData.category || '',
+            visibility: (groupData.visibility || 'public') as 'public' | 'private',
+            maxMembers: groupData.maxMembers?.toString() || '30',
+            autoApprove: true,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch group:', error);
+        toast.error('Failed to load group');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroup();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Đã cập nhật nhóm thành công!');
-    router.push(`/groups/${id}`);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/groups/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã cập nhật nhóm thành công!');
+        router.push(`/groups/${id}`);
+      } else {
+        toast.error(data.message || 'Failed to update group');
+      }
+    } catch (error) {
+      console.error('Failed to update group:', error);
+      toast.error('Failed to update group');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -134,8 +191,11 @@ export default function EditGroupPage({ params }: { params: Promise<{ id: string
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">Save Changes</Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
                 Cancel
               </Button>
             </div>

@@ -1,21 +1,70 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getSessionById, getSubjectById } from '@/lib/mock-data/sessions';
 import { Clock, Calendar, TrendingUp, Target, Coffee, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Session {
+  _id: string;
+  topic: string;
+  subjectName: string;
+  subjectId: string;
+  duration: number;
+  focusScore: number;
+  pomodoroCount: number;
+  breaks: number;
+  notes: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const session = getSessionById(id);
+  const { user } = useAuth();
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id || !id) return;
+
+    const fetchSession = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/study-records/${id}?userId=${user.id}`);
+        if (!response.ok) throw new Error('Failed to fetch session');
+        const data = await response.json();
+        setSession(data.data || data);
+      } catch (error: any) {
+        toast.error('Failed to load session');
+        console.error('Error fetching session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, [user?.id, id]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -31,14 +80,30 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const subject = getSubjectById(session.subjectId);
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
 
-  const handleDelete = () => {
-    toast.success('Session deleted successfully');
-    setTimeout(() => {
-      router.push('/study-sessions');
-    }, 1000);
-  };
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/study-records/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete session');
+
+      toast.success('Session deleted successfully');
+      setTimeout(() => {
+        router.push('/study-sessions');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete session');
+      console.error('Error deleting session:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <div className="w-full">
@@ -59,9 +124,9 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDelete}>
+            <Button variant="outline" size="sm" onClick={handleDelete} disabled={isDeleting}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
         </div>
@@ -77,11 +142,8 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl"
-                  style={{ backgroundColor: subject?.color + '20' }}
-                >
-                  {subject?.icon}
+                <div className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl bg-blue-100">
+                  📚
                 </div>
                 <div>
                   <div className="font-semibold text-lg">{session.subjectName}</div>

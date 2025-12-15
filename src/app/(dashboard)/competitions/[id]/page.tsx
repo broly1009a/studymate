@@ -1,12 +1,11 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCompetitionById, getCompetitionTeams } from '@/lib/mock-data/competitions';
-import { ArrowLeft, Trophy, Users, Calendar, Clock, UserPlus } from 'lucide-react';
+import { ArrowLeft, Trophy, Users, Calendar, Clock, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -16,8 +15,43 @@ import { vi } from '@/lib/i18n/vi';
 
 export default function CompetitionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const competition = getCompetitionById(id);
-  const teams = competition ? getCompetitionTeams(competition.id) : [];
+  const [competition, setCompetition] = useState<any>(null);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
+
+  useEffect(() => {
+    const fetchCompetitionData = async () => {
+      try {
+        setLoading(true);
+        const [compRes, teamsRes] = await Promise.all([
+          fetch(`/api/competitions/${id}`),
+          fetch(`/api/competitions/${id}/teams`),
+        ]);
+
+        const compData = await compRes.json();
+        const teamsData = await teamsRes.json();
+
+        if (compData.success) setCompetition(compData.data);
+        if (teamsData.success) setTeams(teamsData.data);
+      } catch (error) {
+        console.error('Failed to fetch competition data:', error);
+        toast.error('Failed to load competition');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompetitionData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!competition) {
     return (
@@ -33,8 +67,25 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
     );
   }
 
-  const handleRegister = () => {
-    toast.success('Đăng ký thành công!');
+  const handleRegister = async () => {
+    try {
+      setRegistering(true);
+      const response = await fetch(`/api/competitions/${id}/register`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đăng ký thành công!');
+      } else {
+        toast.error(data.message || 'Failed to register');
+      }
+    } catch (error) {
+      console.error('Failed to register:', error);
+      toast.error('Failed to register');
+    } finally {
+      setRegistering(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -279,7 +330,8 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
                   <div className="text-sm text-muted-foreground">
                     Đăng ký đóng {formatDistanceToNow(new Date(competition.registrationDeadline), { addSuffix: true, locale: viLocale })}
                   </div>
-                  <Button onClick={handleRegister} className="w-full">
+                  <Button onClick={handleRegister} className="w-full" disabled={registering}>
+                    {registering && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Đăng ký ngay
                   </Button>
                 </>

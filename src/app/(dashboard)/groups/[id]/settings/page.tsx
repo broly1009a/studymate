@@ -1,19 +1,22 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { getGroupById } from '@/lib/mock-data/groups';
-import { ArrowLeft, Trash } from 'lucide-react';
+import { ArrowLeft, Trash, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
 
 export default function GroupSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
+  const router = useRouter();
+  const [group, setGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [settings, setSettings] = useState({
     notifications: true,
@@ -22,20 +25,107 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
     showActivity: true,
   });
 
+  useEffect(() => {
+    const fetchGroup = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/groups/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          setGroup(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch group:', error);
+        toast.error('Failed to load group');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroup();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;
   }
 
-  const handleSave = () => {
-    toast.success('Đã lưu cài đặt thành công!');
+  const handleSave = async () => {
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/groups/${id}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã lưu cài đặt thành công!');
+      } else {
+        toast.error(data.message || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast.error('Failed to save settings');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleLeave = () => {
-    toast.success('Bạn đã rời khỏi nhóm');
+  const handleLeave = async () => {
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/groups/${id}/leave`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Bạn đã rời khỏi nhóm');
+        router.push('/groups');
+      } else {
+        toast.error(data.message || 'Failed to leave group');
+      }
+    } catch (error) {
+      console.error('Failed to leave group:', error);
+      toast.error('Failed to leave group');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
-    toast.success('Đã xóa nhóm');
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/groups/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã xóa nhóm');
+        router.push('/groups');
+      } else {
+        toast.error(data.message || 'Failed to delete group');
+      }
+    } catch (error) {
+      console.error('Failed to delete group:', error);
+      toast.error('Failed to delete group');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -126,7 +216,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
                   You can rejoin later if the group is public
                 </p>
               </div>
-              <Button variant="outline" onClick={handleLeave}>
+              <Button variant="outline" onClick={handleLeave} disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Leave
               </Button>
             </div>
@@ -138,7 +229,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
                   Permanently delete this group and all its data
                 </p>
               </div>
-              <Button variant="destructive" onClick={handleDelete}>
+              <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Trash className="h-4 w-4 mr-2" />
                 Delete
               </Button>
@@ -146,7 +238,8 @@ export default function GroupSettingsPage({ params }: { params: Promise<{ id: st
           </CardContent>
         </Card>
 
-        <Button onClick={handleSave} className="w-full">
+        <Button onClick={handleSave} className="w-full" disabled={submitting}>
+          {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Settings
         </Button>
       </div>

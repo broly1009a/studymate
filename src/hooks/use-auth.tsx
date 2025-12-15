@@ -32,28 +32,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
 
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
 
-      // Mock user data
-      const mockUser: User = {
-        id: '1',
-        email: credentials.email,
-        username: credentials.email.split('@')[0],
-        fullName: 'John Doe',
-        role: 'student',
-        isEmailVerified: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Login failed');
+      }
 
-      const mockToken = 'mock-jwt-token-' + Date.now();
+      const data = await response.json();
+      const { user, token } = data;
 
       // Store in localStorage
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(mockUser));
-      localStorage.setItem(AUTH_TOKEN_KEY, mockToken);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
 
-      setUser(mockUser);
+      setUser(user);
 
       // Redirect to dashboard
       router.push('/home');
@@ -69,28 +68,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
 
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-      // Mock user data
-      const mockUser: User = {
-        id: '1',
-        email: data.email,
-        username: data.username,
-        fullName: data.fullName,
-        role: 'student',
-        isEmailVerified: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Registration failed');
+      }
 
-      const mockToken = 'mock-jwt-token-' + Date.now();
+      const responseData = await response.json();
+      const { user, token } = responseData;
 
       // Store in localStorage
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(mockUser));
-      localStorage.setItem(AUTH_TOKEN_KEY, mockToken);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
 
-      setUser(mockUser);
+      setUser(user);
 
       // Redirect to onboarding
       router.push('/onboarding');

@@ -1,29 +1,110 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { getSessions, getSubjects, getSessionStats } from '@/lib/mock-data/sessions';
 import { Play, Clock, TrendingUp, Target, Search, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
+
+interface Subject {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+interface Session {
+  _id: string;
+  topic: string;
+  subjectName: string;
+  subjectId: string;
+  duration: number;
+  focusScore: number;
+  pomodoroCount: number;
+  startTime: string;
+}
+
+interface SessionStats {
+  totalSessions: number;
+  totalHours: number;
+  averageFocusScore: number;
+  totalPomodoros: number;
+}
 
 export default function StudySessionsPage() {
+  const { user } = useAuth();
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [stats, setStats] = useState<SessionStats>({
+    totalSessions: 0,
+    totalHours: 0,
+    averageFocusScore: 0,
+    totalPomodoros: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const subjects = getSubjects();
-  const stats = getSessionStats();
-  const sessions = getSessions(subjectFilter !== 'all' ? { subjectId: subjectFilter } : undefined);
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch subjects
+        const subjectsRes = await fetch(`/api/subjects?userId=${user.id}`);
+        if (subjectsRes.ok) {
+          const subjectsData = await subjectsRes.json();
+          setSubjects(subjectsData.data || []);
+        }
+
+        // Fetch sessions
+        const subjectQuery = subjectFilter !== 'all' ? `&subjectId=${subjectFilter}` : '';
+        const sessionsRes = await fetch(`/api/study-records?userId=${user.id}${subjectQuery}`);
+        if (sessionsRes.ok) {
+          const sessionsData = await sessionsRes.json();
+          setSessions(sessionsData.data || []);
+        }
+
+        // Fetch stats
+        const statsRes = await fetch(`/api/study-records/stats?userId=${user.id}`);
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+      } catch (error: any) {
+        toast.error('Failed to load sessions');
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.id, subjectFilter]);
 
   const filteredSessions = sessions.filter((session) =>
     (session.topic || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (session.subjectName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading sessions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -125,8 +206,8 @@ export default function StudySessionsPage() {
                 const subject = subjects.find((s) => s.id === session.subjectId);
                 return (
                   <Link
-                    key={session.id}
-                    href={`/study-sessions/${session.id}`}
+                    key={session._id}
+                    href={`/study-sessions/${session._id}`}
                     className="block"
                   >
                     <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors">

@@ -1,13 +1,12 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { getCompetitionById } from '@/lib/mock-data/competitions';
-import { ArrowLeft, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,7 +14,9 @@ import { toast } from 'sonner';
 export default function SubmitSolutionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const competition = getCompetitionById(id);
+  const [competition, setCompetition] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -24,11 +25,39 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
     demoUrl: '',
   });
 
+  useEffect(() => {
+    const fetchCompetition = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/competitions/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          setCompetition(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch competition:', error);
+        toast.error('Failed to load competition');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompetition();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!competition) {
     return <div className="w-full">Competition not found</div>;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.description) {
@@ -36,8 +65,27 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
       return;
     }
 
-    toast.success('Solution submitted successfully!');
-    router.push(`/competitions/${id}`);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/competitions/${id}/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Solution submitted successfully!');
+        router.push(`/competitions/${id}`);
+      } else {
+        toast.error(data.message || 'Failed to submit solution');
+      }
+    } catch (error) {
+      console.error('Failed to submit solution:', error);
+      toast.error('Failed to submit solution');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -62,6 +110,7 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
                 placeholder="e.g., Optimized Binary Search Implementation"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                disabled={submitting}
                 className="mt-2"
               />
             </div>
@@ -73,6 +122,7 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={6}
+                disabled={submitting}
                 className="mt-2"
               />
             </div>
@@ -84,6 +134,7 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
                 placeholder="https://github.com/username/repo"
                 value={formData.repositoryUrl}
                 onChange={(e) => setFormData({ ...formData, repositoryUrl: e.target.value })}
+                disabled={submitting}
                 className="mt-2"
               />
             </div>
@@ -95,6 +146,7 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
                 placeholder="https://demo.example.com"
                 value={formData.demoUrl}
                 onChange={(e) => setFormData({ ...formData, demoUrl: e.target.value })}
+                disabled={submitting}
                 className="mt-2"
               />
             </div>
@@ -106,7 +158,7 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
                 <p className="text-sm text-muted-foreground mb-2">
                   Drag and drop files here, or click to browse
                 </p>
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" disabled={submitting}>
                   <FileText className="h-4 w-4 mr-2" />
                   Choose Files
                 </Button>
@@ -124,8 +176,11 @@ export default function SubmitSolutionPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">Submit Solution</Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              <Button type="submit" disabled={submitting} className="flex-1 gap-2">
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Submit Solution
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
                 Cancel
               </Button>
             </div>

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ import { vi } from '@/lib/i18n/vi';
 
 export default function CreateGroupPage() {
   const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,7 +26,7 @@ export default function CreateGroupPage() {
     autoApprove: true,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.description || !formData.category) {
@@ -33,8 +34,30 @@ export default function CreateGroupPage() {
       return;
     }
 
-    toast.success('Đã tạo nhóm thành công!');
-    router.push('/groups');
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          maxMembers: parseInt(formData.maxMembers),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã tạo nhóm thành công!');
+        router.push('/groups');
+      } else {
+        toast.error(data.message || 'Failed to create group');
+      }
+    } catch (error) {
+      console.error('Failed to create group:', error);
+      toast.error('Failed to create group');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -153,13 +176,15 @@ export default function CreateGroupPage() {
 
             {/* Submit */}
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Tạo nhóm
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
+                disabled={submitting}
               >
                 Hủy
               </Button>

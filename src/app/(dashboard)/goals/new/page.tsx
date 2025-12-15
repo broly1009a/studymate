@@ -1,21 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSubjects } from '@/lib/mock-data/sessions';
 import { ArrowLeft, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Subject {
+  id: string;
+  name: string;
+  icon: string;
+}
 
 export default function NewGoalPage() {
   const router = useRouter();
-  const subjects = getSubjects();
+  const { user } = useAuth();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -31,6 +39,24 @@ export default function NewGoalPage() {
     icon: '🎯',
     color: '#3b82f6',
   });
+
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch(`/api/subjects?userId=${user?.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSubjects(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+    };
+
+    if (user?.id) {
+      fetchSubjects();
+    }
+  }, [user?.id]);
 
   const goalTypes = [
     { value: 'study_hours', label: 'Study Hours', unit: 'hours', icon: '⏰' },
@@ -50,18 +76,51 @@ export default function NewGoalPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.targetValue || !formData.endDate) {
+    if (!formData.title || !formData.targetValue || !formData.endDate || !user?.id) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    toast.success('Goal created successfully!');
-    setTimeout(() => {
-      router.push('/goals');
-    }, 1000);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          title: formData.title,
+          description: formData.description,
+          type: formData.type,
+          category: formData.category,
+          targetValue: parseFloat(formData.targetValue),
+          unit: formData.unit,
+          priority: formData.priority,
+          subjectId: formData.subjectId === 'none' ? null : formData.subjectId,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          icon: formData.icon,
+          color: formData.color,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create goal');
+      }
+
+      toast.success('Goal created successfully!');
+      setTimeout(() => {
+        router.push('/goals');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create goal');
+      console.error('Error creating goal:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -247,12 +306,12 @@ export default function NewGoalPage() {
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" disabled={isSubmitting} className="flex-1">
                 <Target className="h-4 w-4 mr-2" />
-                Create Goal
+                {isSubmitting ? 'Creating...' : 'Create Goal'}
               </Button>
               <Link href="/goals" className="flex-1">
-                <Button type="button" variant="outline" className="w-full">
+                <Button type="button" variant="outline" className="w-full" disabled={isSubmitting}>
                   Cancel
                 </Button>
               </Link>

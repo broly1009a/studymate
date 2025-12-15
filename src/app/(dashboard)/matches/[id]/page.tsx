@@ -1,25 +1,84 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { getPartnerById } from '@/lib/mock-data/partners';
-import { ArrowLeft, MessageCircle, Star, Clock, Users, Calendar, Globe, Languages } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Star, Clock, Users, Calendar, Globe, Languages, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
+interface Partner {
+  _id: string;
+  id?: string;
+  userId: string;
+  name: string;
+  avatar: string;
+  age: number;
+  major: string;
+  university: string;
+  bio: string;
+  subjects: string[];
+  availability: string[];
+  studyStyle: string[];
+  goals: string[];
+  rating: number;
+  matchScore: number;
+  studyHours: number;
+  sessionsCompleted: number;
+  badges: string[];
+  timezone: string;
+  languages: string[];
+  status: 'available' | 'busy' | 'offline';
+}
+
 export default function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const partner = getPartnerById(id);
+  const [partner, setPartner] = useState<Partner | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const fetchPartner = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/partners/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch partner');
+        }
+        const data = await response.json();
+        setPartner(data.data || data);
+      } catch (error: any) {
+        toast.error('Không thể tải thông tin bạn học');
+        console.error('Error fetching partner:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPartner();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Đang tải thông tin...</h3>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!partner) {
     return (
@@ -35,14 +94,39 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const handleSendRequest = () => {
+  const handleSendRequest = async () => {
     if (!message.trim()) {
       toast.error('Vui lòng viết tin nhắn');
       return;
     }
-    toast.success('Đã gửi yêu cầu thành công!');
-    setIsDialogOpen(false);
-    setMessage('');
+    
+    try {
+      setSending(true);
+      const response = await fetch('/api/partner-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          partnerId: partner?._id || id,
+          message: message.trim(),
+          subject: partner?.subjects[0] || '',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send request');
+      }
+
+      toast.success('Đã gửi yêu cầu thành công!');
+      setIsDialogOpen(false);
+      setMessage('');
+    } catch (error: any) {
+      toast.error('Không thể gửi yêu cầu');
+      console.error('Error sending request:', error);
+    } finally {
+      setSending(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -107,9 +191,9 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
             <CardContent>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-full" size="lg">
+                  <Button className="w-full" size="lg" disabled={sending}>
                     <MessageCircle className="h-5 w-5 mr-2" />
-                    Gửi yêu cầu học cùng
+                    {sending ? 'Đang gửi...' : 'Gửi yêu cầu học cùng'}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>

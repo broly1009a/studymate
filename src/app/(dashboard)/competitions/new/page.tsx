@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ import { vi } from '@/lib/i18n/vi';
 
 export default function NewCompetitionPage() {
   const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -35,7 +36,7 @@ export default function NewCompetitionPage() {
     status: 'draft' as 'draft' | 'published',
   });
 
-  const handleSubmit = (e: React.FormEvent, status: 'draft' | 'published') => {
+  const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'published') => {
     e.preventDefault();
 
     if (!formData.title || !formData.description || !formData.category) {
@@ -43,12 +44,31 @@ export default function NewCompetitionPage() {
       return;
     }
 
-    const message = status === 'draft' 
-      ? 'Đã lưu bản nháp cuộc thi' 
-      : 'Đã tạo cuộc thi thành công';
-    
-    toast.success(message);
-    router.push('/competitions');
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/competitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, status }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        const message = status === 'draft' 
+          ? 'Đã lưu bản nháp cuộc thi' 
+          : 'Đã tạo cuộc thi thành công';
+        
+        toast.success(message);
+        router.push('/competitions');
+      } else {
+        toast.error(data.message || 'Failed to create competition');
+      }
+    } catch (error) {
+      console.error('Failed to create competition:', error);
+      toast.error('Failed to create competition');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -288,19 +308,23 @@ export default function NewCompetitionPage() {
               type="button"
               variant="outline"
               onClick={(e) => handleSubmit(e, 'draft')}
+              disabled={submitting}
             >
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               <Save className="h-4 w-4 mr-2" />
               Lưu nháp
             </Button>
             <Button
               type="button"
               onClick={(e) => handleSubmit(e, 'published')}
+              disabled={submitting}
             >
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               <Send className="h-4 w-4 mr-2" />
               Tạo cuộc thi
             </Button>
             <Link href="/competitions">
-              <Button type="button" variant="ghost">
+              <Button type="button" variant="ghost" disabled={submitting}>
                 {vi.common.cancel}
               </Button>
             </Link>

@@ -1,16 +1,36 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getMyGroups } from '@/lib/mock-data/groups';
-import { Plus, Users, MessageSquare, Calendar } from 'lucide-react';
+import { Plus, Users, MessageSquare, Calendar, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { vi } from '@/lib/i18n/vi';
 
 export default function MyGroupsPage() {
-  const myGroups = getMyGroups();
+  const [myGroups, setMyGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMyGroups = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/groups/my-groups');
+        const data = await response.json();
+        if (data.success) {
+          setMyGroups(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch my groups:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyGroups();
+  }, []);
 
   return (
     <div className="w-full">
@@ -27,40 +47,46 @@ export default function MyGroupsPage() {
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">My Groups</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{myGroups.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Unread Messages</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">
-              {myGroups.reduce((sum, g) => sum + (g.unreadMessages || 0), 0)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">
-              {myGroups.reduce((sum, g) => sum + (g.upcomingEvents || 0), 0)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">My Groups</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{myGroups.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Unread Messages</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-500">
+                  {myGroups.reduce((sum, g) => sum + (g.unreadMessages || 0), 0)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-500">
+                  {myGroups.reduce((sum, g) => sum + (g.upcomingEvents || 0), 0)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Groups List */}
-      <div className="space-y-4">
+          {/* Groups List */}
+          <div className="space-y-4">
         {myGroups.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -137,6 +163,9 @@ export default function MyGroupsPage() {
             </Card>
           ))
         )}
+          </div>
+        </>
+      )}
       </div>
     </div>
   );

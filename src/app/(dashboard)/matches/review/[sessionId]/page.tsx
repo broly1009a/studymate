@@ -1,12 +1,11 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { getStudySessions } from '@/lib/mock-data/partners';
-import { Star, ArrowLeft, Send } from 'lucide-react';
+import { Star, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -14,14 +13,62 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 
+interface StudySession {
+  _id: string;
+  id?: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  subject: string;
+  scheduledAt: string;
+  duration: number;
+}
+
 export default function SessionReviewPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
   const router = useRouter();
-  const session = getStudySessions().find(s => s.id === sessionId);
+  const [session, setSession] = useState<StudySession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [review, setReview] = useState('');
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/study-sessions/${sessionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch session');
+        }
+        const data = await response.json();
+        setSession(data.data || data);
+      } catch (error: any) {
+        toast.error('Không thể tải phiên học');
+        console.error('Error fetching session:', error);
+        router.push('/matches/sessions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, [sessionId, router]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Đang tải phiên học...</h3>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -37,7 +84,7 @@ export default function SessionReviewPage({ params }: { params: Promise<{ sessio
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (rating === 0) {
@@ -45,8 +92,31 @@ export default function SessionReviewPage({ params }: { params: Promise<{ sessio
       return;
     }
 
-    toast.success('Đã gửi đánh giá thành công!');
-    router.push('/matches/sessions');
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/study-sessions/${sessionId}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating,
+          review,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit review');
+      }
+
+      toast.success('Đã gửi đánh giá thành công!');
+      router.push('/matches/sessions');
+    } catch (error: any) {
+      toast.error('Không thể gửi đánh giá');
+      console.error('Error submitting review:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

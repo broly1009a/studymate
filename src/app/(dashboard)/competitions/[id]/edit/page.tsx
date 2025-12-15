@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -17,27 +17,73 @@ import { vi } from '@/lib/i18n/vi';
 export default function EditCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock existing competition data
   const [formData, setFormData] = useState({
-    title: 'ACM ICPC Programming Contest 2025',
-    description: 'International Collegiate Programming Contest for university students',
-    category: 'programming',
-    difficulty: 'advanced',
-    startDate: '2025-11-15T09:00',
-    endDate: '2025-11-15T17:00',
-    registrationDeadline: '2025-11-10T23:59',
-    maxParticipants: '200',
-    teamSize: '3',
-    allowTeams: true,
-    prizes: 'First place: $5000\nSecond place: $3000\nThird place: $1000',
-    rules: 'Standard ACM ICPC rules apply...',
-    requirements: 'Must be currently enrolled university student',
-    contactEmail: 'acm@university.edu',
+    title: '',
+    description: '',
+    category: '',
+    difficulty: '',
+    startDate: '',
+    endDate: '',
+    registrationDeadline: '',
+    maxParticipants: '',
+    teamSize: '',
+    allowTeams: false,
+    prizes: '',
+    rules: '',
+    requirements: '',
+    contactEmail: '',
     status: 'published' as 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchCompetition = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/competitions/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          const competition = data.data;
+          setFormData({
+            title: competition.title || '',
+            description: competition.description || '',
+            category: competition.category || '',
+            difficulty: competition.difficulty || '',
+            startDate: competition.startDate || '',
+            endDate: competition.endDate || '',
+            registrationDeadline: competition.registrationDeadline || '',
+            maxParticipants: competition.maxParticipants?.toString() || '',
+            teamSize: competition.teamSize?.toString() || '',
+            allowTeams: competition.allowTeams || false,
+            prizes: competition.prizes || '',
+            rules: competition.rules || '',
+            requirements: competition.requirements || '',
+            contactEmail: competition.contactEmail || '',
+            status: competition.status || 'published',
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch competition:', error);
+        toast.error('Failed to load competition');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompetition();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title || !formData.description || !formData.category) {
@@ -45,14 +91,52 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
       return;
     }
 
-    toast.success('Đã cập nhật cuộc thi thành công');
-    router.push(`/competitions/${id}`);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/competitions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã cập nhật cuộc thi thành công');
+        router.push(`/competitions/${id}`);
+      } else {
+        toast.error(data.message || 'Failed to update competition');
+      }
+    } catch (error) {
+      console.error('Failed to update competition:', error);
+      toast.error('Failed to update competition');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
-    if (confirm('Bạn có chắc chắn muốn xóa cuộc thi này?')) {
-      toast.success('Đã xóa cuộc thi');
-      router.push('/competitions');
+  const handleDelete = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa cuộc thi này?')) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/competitions/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đã xóa cuộc thi thành công');
+        router.push('/competitions');
+      } else {
+        toast.error(data.message || 'Failed to delete competition');
+      }
+    } catch (error) {
+      console.error('Failed to delete competition:', error);
+      toast.error('Failed to delete competition');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -70,7 +154,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
           <h1 className="text-3xl font-bold">Chỉnh sửa cuộc thi</h1>
           <p className="text-muted-foreground">Cập nhật thông tin cuộc thi</p>
         </div>
-        <Button variant="destructive" onClick={handleDelete}>
+        <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
           <Trash2 className="h-4 w-4 mr-2" />
           Xóa cuộc thi
         </Button>
@@ -120,6 +204,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   placeholder="Nhập tên cuộc thi..."
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={submitting}
                   required
                 />
               </div>
@@ -132,6 +217,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
+                  disabled={submitting}
                   required
                 />
               </div>
@@ -142,6 +228,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   <Select
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
+                    disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn danh mục" />
@@ -162,6 +249,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   <Select
                     value={formData.difficulty}
                     onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
+                    disabled={submitting}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn độ khó" />
@@ -193,6 +281,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                     type="datetime-local"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    disabled={submitting}
                   />
                 </div>
 
@@ -203,6 +292,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                     type="datetime-local"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -214,6 +304,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   type="datetime-local"
                   value={formData.registrationDeadline}
                   onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
+                  disabled={submitting}
                 />
               </div>
             </CardContent>
@@ -235,6 +326,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                     placeholder="Không giới hạn"
                     value={formData.maxParticipants}
                     onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
+                    disabled={submitting}
                   />
                 </div>
 
@@ -246,6 +338,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                     placeholder="1 (cá nhân)"
                     value={formData.teamSize}
                     onChange={(e) => setFormData({ ...formData, teamSize: e.target.value })}
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -261,6 +354,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   id="allowTeams"
                   checked={formData.allowTeams}
                   onCheckedChange={(checked) => setFormData({ ...formData, allowTeams: checked })}
+                  disabled={submitting}
                 />
               </div>
             </CardContent>
@@ -281,6 +375,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   value={formData.prizes}
                   onChange={(e) => setFormData({ ...formData, prizes: e.target.value })}
                   rows={3}
+                  disabled={submitting}
                 />
               </div>
 
@@ -292,6 +387,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   value={formData.rules}
                   onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
                   rows={4}
+                  disabled={submitting}
                 />
               </div>
 
@@ -303,6 +399,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   value={formData.requirements}
                   onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
                   rows={3}
+                  disabled={submitting}
                 />
               </div>
 
@@ -314,6 +411,7 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
                   placeholder="contact@example.com"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                  disabled={submitting}
                 />
               </div>
             </CardContent>
@@ -321,12 +419,13 @@ export default function EditCompetitionPage({ params }: { params: Promise<{ id: 
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <Button type="submit">
-              <Save className="h-4 w-4 mr-2" />
+            <Button type="submit" disabled={submitting} className="gap-2">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Save className="h-4 w-4" />
               Lưu thay đổi
             </Button>
             <Link href={`/competitions/${id}`}>
-              <Button type="button" variant="ghost">
+              <Button type="button" variant="ghost" disabled={submitting}>
                 {vi.common.cancel}
               </Button>
             </Link>

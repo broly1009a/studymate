@@ -1,14 +1,13 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getGroupById } from '@/lib/mock-data/groups';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -17,7 +16,9 @@ import { vi } from '@/lib/i18n/vi';
 export default function CreateEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const group = getGroupById(id);
+  const [group, setGroup] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -28,11 +29,39 @@ export default function CreateEventPage({ params }: { params: Promise<{ id: stri
     location: '',
   });
 
+  useEffect(() => {
+    const fetchGroup = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/groups/${id}`);
+        const data = await response.json();
+        if (data.success) {
+          setGroup(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch group:', error);
+        toast.error('Failed to load group');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroup();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!group) {
     return <div className="w-full">Group not found</div>;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.startTime || !formData.location) {
@@ -40,8 +69,27 @@ export default function CreateEventPage({ params }: { params: Promise<{ id: stri
       return;
     }
 
-    toast.success('Event created successfully!');
-    router.push(`/groups/${id}/calendar`);
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/groups/${id}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Event created successfully!');
+        router.push(`/groups/${id}/calendar`);
+      } else {
+        toast.error(data.message || 'Failed to create event');
+      }
+    } catch (error) {
+      console.error('Failed to create event:', error);
+      toast.error('Failed to create event');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -130,8 +178,11 @@ export default function CreateEventPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">Create Event</Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Event
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
                 Cancel
               </Button>
             </div>

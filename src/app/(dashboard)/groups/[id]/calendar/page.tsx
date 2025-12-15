@@ -1,19 +1,51 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGroupById, getGroupEvents } from '@/lib/mock-data/groups';
-import { ArrowLeft, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 
 export default function GroupCalendarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
-  const events = group ? getGroupEvents(group.id) : [];
+  const [group, setGroup] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCalendarData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, eventsRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/events`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const eventsData = await eventsRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (eventsData.success) setEvents(eventsData.data);
+      } catch (error) {
+        console.error('Failed to fetch calendar data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCalendarData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;

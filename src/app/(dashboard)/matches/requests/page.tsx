@@ -1,27 +1,86 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getPartnerRequests } from '@/lib/mock-data/partners';
-import { Check, X, Send, Inbox } from 'lucide-react';
+import { Check, X, Send, Inbox, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 
+interface PartnerRequest {
+  _id: string;
+  id?: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  subject: string;
+  message: string;
+  type: 'sent' | 'received';
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
 export default function PartnerRequestsPage() {
   const [filter, setFilter] = useState<'all' | 'received' | 'sent'>('all');
-  const requests = getPartnerRequests(filter === 'all' ? undefined : filter);
+  const [requests, setRequests] = useState<PartnerRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAccept = (requestId: string, partnerName: string) => {
-    toast.success(`Đã chấp nhận yêu cầu từ ${partnerName}`);
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        const params = filter !== 'all' ? `?type=${filter}` : '';
+        const response = await fetch(`/api/partner-requests${params}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch requests');
+        }
+        const data = await response.json();
+        setRequests(data.data || []);
+      } catch (error: any) {
+        toast.error('Không thể tải yêu cầu');
+        console.error('Error fetching requests:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [filter]);
+
+  const handleAccept = async (requestId: string, partnerName: string) => {
+    try {
+      const response = await fetch(`/api/partner-requests/${requestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to accept');
+      toast.success(`Đã chấp nhận yêu cầu từ ${partnerName}`);
+      setRequests(requests.map(r => r._id === requestId ? { ...r, status: 'accepted' } : r));
+    } catch (error: any) {
+      toast.error('Không thể chấp nhận yêu cầu');
+    }
   };
 
-  const handleReject = (requestId: string, partnerName: string) => {
-    toast.success(`Đã từ chối yêu cầu từ ${partnerName}`);
+  const handleReject = async (requestId: string, partnerName: string) => {
+    try {
+      const response = await fetch(`/api/partner-requests/${requestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to reject');
+      toast.success(`Đã từ chối yêu cầu từ ${partnerName}`);
+      setRequests(requests.map(r => r._id === requestId ? { ...r, status: 'rejected' } : r));
+    } catch (error: any) {
+      toast.error('Không thể từ chối yêu cầu');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -101,7 +160,14 @@ export default function PartnerRequestsPage() {
 
       {/* Requests List */}
       <div className="space-y-4">
-        {requests.length === 0 ? (
+        {loading ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+              <h3 className="text-lg font-semibold mb-2">Đang tải yêu cầu...</h3>
+            </CardContent>
+          </Card>
+        ) : requests.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Inbox className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -120,7 +186,7 @@ export default function PartnerRequestsPage() {
           </Card>
         ) : (
           requests.map((request) => (
-            <Card key={request.id}>
+            <Card key={request._id || request.id}>
               <CardHeader>
                 <div className="flex items-start gap-4">
                   <Link href={`/matches/${request.partnerId}`}>
@@ -164,14 +230,14 @@ export default function PartnerRequestsPage() {
                 <CardContent>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleAccept(request.id, request.partnerName)}
+                      onClick={() => handleAccept(request._id || request.id, request.partnerName)}
                       className="flex-1"
                     >
                       <Check className="h-4 w-4 mr-2" />
                       Accept
                     </Button>
                     <Button
-                      onClick={() => handleReject(request.id, request.partnerName)}
+                      onClick={() => handleReject(request._id || request.id, request.partnerName)}
                       variant="outline"
                       className="flex-1"
                     >

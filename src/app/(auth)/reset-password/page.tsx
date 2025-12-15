@@ -76,8 +76,21 @@ function ResetPasswordContent() {
     try {
       setIsLoading(true);
 
-      // Mock API call - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          token: token,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Password reset failed');
+      }
 
       setResetSuccess(true);
       toast.success(vi.auth.resetPassword.success);

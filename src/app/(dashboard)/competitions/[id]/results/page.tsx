@@ -1,49 +1,70 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getCompetitionById } from '@/lib/mock-data/competitions';
-import { ArrowLeft, Trophy, Medal, Award, Download } from 'lucide-react';
+import { ArrowLeft, Trophy, Medal, Award, Download, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
 export default function CompetitionResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const competition = getCompetitionById(id);
+  const [competition, setCompetition] = useState<any>(null);
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
-  const results = [
-    {
-      rank: 1,
-      team: 'Code Warriors',
-      score: 2850,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team1',
-      prize: '1st Place - $1000',
-    },
-    {
-      rank: 2,
-      team: 'Algorithm Masters',
-      score: 2720,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team2',
-      prize: '2nd Place - $500',
-    },
-    {
-      rank: 3,
-      team: 'Data Wizards',
-      score: 2650,
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=team3',
-      prize: '3rd Place - $250',
-    },
-  ];
+  useEffect(() => {
+    const fetchResultsData = async () => {
+      try {
+        setLoading(true);
+        const [compRes, resultsRes] = await Promise.all([
+          fetch(`/api/competitions/${id}`),
+          fetch(`/api/competitions/${id}/results`),
+        ]);
+
+        const compData = await compRes.json();
+        const resultsData = await resultsRes.json();
+
+        if (compData.success) setCompetition(compData.data);
+        if (resultsData.success) setResults(resultsData.data);
+      } catch (error) {
+        console.error('Failed to fetch results:', error);
+        toast.error('Failed to load results');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResultsData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!competition) {
     return <div className="w-full">Competition not found</div>;
   }
 
-  const handleDownloadCertificate = () => {
-    toast.success('Certificate downloaded!');
+  const handleDownloadCertificate = async () => {
+    try {
+      setDownloading(true);
+      // Simulate download
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Certificate downloaded!');
+    } catch (error) {
+      console.error('Failed to download:', error);
+      toast.error('Failed to download certificate');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -132,7 +153,8 @@ export default function CompetitionResultsPage({ params }: { params: Promise<{ i
                 Thank you for participating in {competition.title}
               </p>
             </div>
-            <Button onClick={handleDownloadCertificate}>
+            <Button onClick={handleDownloadCertificate} disabled={downloading}>
+              {downloading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>

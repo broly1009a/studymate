@@ -1,19 +1,51 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGroupById, getGroupMembers } from '@/lib/mock-data/groups';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { vi } from '@/lib/i18n/vi';
 
 export default function GroupMembersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
-  const members = group ? getGroupMembers(group.id) : [];
+  const [group, setGroup] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMembersData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, membersRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/members`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const membersData = await membersRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (membersData.success) setMembers(membersData.data);
+      } catch (error) {
+        console.error('Failed to fetch members data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembersData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;

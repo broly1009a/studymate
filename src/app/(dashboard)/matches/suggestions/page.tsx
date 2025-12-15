@@ -1,18 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Heart, X, Info, MessageCircle, Star, BookOpen, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPartners } from '@/lib/mock-data/partners';
+
+interface Partner {
+  _id: string;
+  userId: string;
+  name: string;
+  avatar: string;
+  age: number;
+  major: string;
+  university: string;
+  bio: string;
+  subjects: string[];
+  rating: number;
+  matchScore: number;
+  studyHours: number;
+  sessionsCompleted: number;
+  badges: string[];
+}
 
 export default function MatchSuggestionsPage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
+  const [suggestions, setSuggestions] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const suggestions = getPartners({ minMatchScore: 70 }).slice(0, 10);
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const response = await fetch('/api/partners?minMatchScore=70&limit=10');
+        if (!response.ok) {
+          throw new Error('Failed to fetch partners');
+        }
+        const data = await response.json();
+        setSuggestions(data.data || []);
+      } catch (error: any) {
+        toast.error('Không thể tải danh sách đối tác');
+        console.error('Error fetching partners:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPartners();
+  }, []);
+
   const currentPartner = suggestions[currentIndex];
 
   const handleNext = () => {
@@ -47,8 +84,37 @@ export default function MatchSuggestionsPage() {
     router.push('/messages');
   };
 
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4"></div>
+          <p>Đang tải danh sách đối tác...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!currentPartner) {
-    return null;
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <button
+          onClick={() => router.push('/matches')}
+          className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 p-2 rounded-full transition"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        <div className="text-white text-center">
+          <p className="text-lg mb-4">Không tìm thấy đối tác phù hợp</p>
+          <button
+            onClick={() => router.push('/matches')}
+            className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 py-2 rounded-full hover:scale-105 transition"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1,19 +1,51 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGroupById, getGroupResources } from '@/lib/mock-data/groups';
-import { ArrowLeft, Upload, FileText, Download } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Download, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 
 export default function GroupResourcesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
-  const resources = group ? getGroupResources(group.id) : [];
+  const [group, setGroup] = useState<any>(null);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchResourcesData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, resourcesRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/resources`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const resourcesData = await resourcesRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (resourcesData.success) setResources(resourcesData.data);
+      } catch (error) {
+        console.error('Failed to fetch resources data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResourcesData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;

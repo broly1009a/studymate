@@ -7,14 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getSubjects } from '@/lib/mock-data/sessions';
 import { Play, Pause, Square, Coffee, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Subject {
+  id: string;
+  name: string;
+  icon: string;
+}
 
 export default function ActiveSessionPage() {
   const router = useRouter();
-  const subjects = getSubjects();
+  const { user } = useAuth();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   // Session setup
   const [subjectId, setSubjectId] = useState('');
@@ -34,6 +41,27 @@ export default function ActiveSessionPage() {
   // Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notes, setNotes] = useState('');
+  const [focusScore, setFocusScore] = useState(85);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load subjects
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch(`/api/subjects?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSubjects(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+      }
+    };
+
+    fetchSubjects();
+  }, [user?.id]);
 
   // Timer effect
   useEffect(() => {
@@ -86,19 +114,48 @@ export default function ActiveSessionPage() {
     toast.success('Pomodoro completed! 🍅');
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     if (seconds < 60) {
       toast.error('Session must be at least 1 minute long');
       return;
     }
 
     const duration = Math.floor(seconds / 60);
-    toast.success(`Session completed! Duration: ${duration} minutes`);
     
-    // In a real app, save the session here
-    setTimeout(() => {
-      router.push('/study-sessions');
-    }, 1500);
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/study-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          subjectId,
+          subjectName: subjects.find(s => s.id === subjectId)?.name || 'Unknown',
+          topic,
+          duration,
+          focusScore,
+          pomodoroCount,
+          breaks: breakCount,
+          notes,
+          startTime: new Date(Date.now() - seconds * 1000),
+          endTime: new Date(),
+          status: 'completed',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save session');
+
+      toast.success(`Session completed! Duration: ${duration} minutes`);
+      
+      setTimeout(() => {
+        router.push('/study-sessions');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save session');
+      console.error('Error saving session:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!sessionStarted) {
@@ -206,9 +263,9 @@ export default function ActiveSessionPage() {
                       End Break
                     </Button>
                   )}
-                  <Button onClick={handleEndSession} size="lg" variant="destructive">
+                  <Button onClick={handleEndSession} size="lg" variant="destructive" disabled={isSaving}>
                     <Square className="h-5 w-5 mr-2" />
-                    End Session
+                    {isSaving ? 'Saving...' : 'End Session'}
                   </Button>
                 </div>
               </div>

@@ -1,31 +1,99 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getGoals, getGoalStats } from '@/lib/mock-data/goals';
 import { TrendingUp, TrendingDown, Target, Calendar, Award } from 'lucide-react';
 import Link from 'next/link';
 import { differenceInDays } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
+
+interface Goal {
+  _id: string;
+  title: string;
+  icon: string;
+  status: string;
+  priority: string;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  color: string;
+  endDate: string;
+  startDate: string;
+  completedAt?: string;
+  category: string;
+  subjectName?: string;
+}
+
+interface Stats {
+  active: number;
+  onTrack: number;
+  behind: number;
+  averageProgress: number;
+}
 
 export default function GoalProgressPage() {
-  const goals = getGoals({ status: 'active' });
-  const stats = getGoalStats();
+  const { user } = useAuth();
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [stats, setStats] = useState<Stats>({ active: 0, onTrack: 0, behind: 0, averageProgress: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const onTrackGoals = goals.filter(g => {
-    const progress = (g.currentValue / g.targetValue) * 100;
-    const daysLeft = differenceInDays(new Date(g.endDate), new Date());
-    const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
-    const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
-    return progress >= timeProgress;
-  });
+  useEffect(() => {
+    if (!user?.id) return;
 
-  const behindGoals = goals.filter(g => {
-    const progress = (g.currentValue / g.targetValue) * 100;
-    const daysLeft = differenceInDays(new Date(g.endDate), new Date());
-    const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
-    const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
-    return progress < timeProgress;
-  });
+    const fetchGoals = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/goals?userId=${user.id}&status=active`);
+        if (!response.ok) throw new Error('Failed to fetch goals');
+        const data = await response.json();
+        setGoals(data.data || []);
+      } catch (error: any) {
+        toast.error('Failed to load goals');
+        console.error('Error fetching goals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`/api/goals/stats?userId=${user.id}`);
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        const data = await response.json();
+        
+        // Calculate progress stats
+        const onTrack = goals.filter(g => {
+          const progress = (g.currentValue / g.targetValue) * 100;
+          const daysLeft = differenceInDays(new Date(g.endDate), new Date());
+          const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
+          const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
+          return progress >= timeProgress;
+        }).length;
+
+        const behind = goals.filter(g => {
+          const progress = (g.currentValue / g.targetValue) * 100;
+          const daysLeft = differenceInDays(new Date(g.endDate), new Date());
+          const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
+          const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
+          return progress < timeProgress;
+        }).length;
+
+        setStats({
+          active: data.active,
+          onTrack,
+          behind,
+          averageProgress: data.averageProgress,
+        });
+      } catch (error: any) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchGoals();
+    fetchStats();
+  }, [user?.id]);
 
   return (
     <div className="w-full">
@@ -49,7 +117,7 @@ export default function GoalProgressPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">On Track</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{onTrackGoals.length}</div>
+            <div className="text-2xl font-bold text-green-500">{stats.onTrack}</div>
           </CardContent>
         </Card>
         <Card>
@@ -57,7 +125,7 @@ export default function GoalProgressPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Behind Schedule</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{behindGoals.length}</div>
+            <div className="text-2xl font-bold text-red-500">{stats.behind}</div>
           </CardContent>
         </Card>
         <Card>
@@ -71,25 +139,33 @@ export default function GoalProgressPage() {
       </div>
 
       {/* On Track Goals */}
-      {onTrackGoals.length > 0 && (
+      {stats.onTrack > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="h-5 w-5 text-green-500" />
-            <h2 className="text-xl font-bold">On Track ({onTrackGoals.length})</h2>
+            <h2 className="text-xl font-bold">On Track ({stats.onTrack})</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {onTrackGoals.map((goal) => {
-              const progress = (goal.currentValue / goal.targetValue) * 100;
-              const daysLeft = differenceInDays(new Date(goal.endDate), new Date());
-              
-              return (
-                <Link key={goal.id} href={`/goals/${goal.id}`}>
-                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">{goal.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base truncate">{goal.title}</CardTitle>
+            {goals
+              .filter((g) => {
+                const progress = (g.currentValue / g.targetValue) * 100;
+                const daysLeft = differenceInDays(new Date(g.endDate), new Date());
+                const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
+                const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
+                return progress >= timeProgress;
+              })
+              .map((goal) => {
+                const progress = (goal.currentValue / goal.targetValue) * 100;
+                const daysLeft = differenceInDays(new Date(goal.endDate), new Date());
+                
+                return (
+                  <Link key={goal._id} href={`/goals/${goal._id}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">{goal.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base truncate">{goal.title}</CardTitle>
                           <CardDescription className="text-xs">
                             {goal.currentValue} / {goal.targetValue} {goal.unit}
                           </CardDescription>
@@ -126,52 +202,60 @@ export default function GoalProgressPage() {
       )}
 
       {/* Behind Schedule Goals */}
-      {behindGoals.length > 0 && (
+      {stats.behind > 0 && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <TrendingDown className="h-5 w-5 text-red-500" />
-            <h2 className="text-xl font-bold">Behind Schedule ({behindGoals.length})</h2>
+            <h2 className="text-xl font-bold">Behind Schedule ({stats.behind})</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {behindGoals.map((goal) => {
-              const progress = (goal.currentValue / goal.targetValue) * 100;
-              const daysLeft = differenceInDays(new Date(goal.endDate), new Date());
-              const dailyTarget = daysLeft > 0 
-                ? ((goal.targetValue - goal.currentValue) / daysLeft).toFixed(1)
-                : '0';
-              
-              return (
-                <Link key={goal.id} href={`/goals/${goal.id}`}>
-                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-red-500/20">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">{goal.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base truncate">{goal.title}</CardTitle>
-                          <CardDescription className="text-xs">
-                            {goal.currentValue} / {goal.targetValue} {goal.unit}
-                          </CardDescription>
+            {goals
+              .filter((g) => {
+                const progress = (g.currentValue / g.targetValue) * 100;
+                const daysLeft = differenceInDays(new Date(g.endDate), new Date());
+                const totalDays = differenceInDays(new Date(g.endDate), new Date(g.startDate));
+                const timeProgress = ((totalDays - daysLeft) / totalDays) * 100;
+                return progress < timeProgress;
+              })
+              .map((goal) => {
+                const progress = (goal.currentValue / goal.targetValue) * 100;
+                const daysLeft = differenceInDays(new Date(goal.endDate), new Date());
+                const dailyTarget = daysLeft > 0 
+                  ? ((goal.targetValue - goal.currentValue) / daysLeft).toFixed(1)
+                  : '0';
+                
+                return (
+                  <Link key={goal._id} href={`/goals/${goal._id}`}>
+                    <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-red-500/20">
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">{goal.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base truncate">{goal.title}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {goal.currentValue} / {goal.targetValue} {goal.unit}
+                            </CardDescription>
+                          </div>
+                          <Badge className="bg-red-500/10 text-red-500">
+                            {progress.toFixed(0)}%
+                          </Badge>
                         </div>
-                        <Badge className="bg-red-500/10 text-red-500">
-                          {progress.toFixed(0)}%
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${Math.min(progress, 100)}%`,
-                            backgroundColor: goal.color,
-                          }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {daysLeft} days left
-                        </span>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(progress, 100)}%`,
+                              backgroundColor: goal.color,
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {daysLeft} days left
+                          </span>
                         <span className="text-red-500 font-medium">
                           Need {dailyTarget} {goal.unit}/day
                         </span>

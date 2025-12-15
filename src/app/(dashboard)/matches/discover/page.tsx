@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { X, Heart, MessageCircle, Info, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, Heart, MessageCircle, Info, Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -14,7 +14,8 @@ interface Story {
 }
 
 interface Partner {
-  id: string
+  _id?: string
+  id?: string
   name: string
   avatar: string
   age: number
@@ -23,151 +24,55 @@ interface Partner {
   bio: string
   subjects: string[]
   matchScore: number
-  stories: Story[]
-  hasNewStory: boolean
+  stories?: Story[]
+  hasNewStory?: boolean
 }
-
-const mockPartners: Partner[] = [
-  {
-    id: '1',
-    name: 'Nguyễn Minh Anh',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Minh',
-    age: 21,
-    major: 'Khoa học Máy tính',
-    university: 'ĐH Bách Khoa',
-    bio: 'Đam mê lập trình và AI. Thích học nhóm và chia sẻ kiến thức.',
-    subjects: ['Python', 'Machine Learning', 'Toán'],
-    matchScore: 95,
-    hasNewStory: true,
-    stories: [
-      {
-        id: 's1',
-        image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800',
-        title: 'Học Python',
-        description: 'Đang học về Deep Learning 🤖'
-      },
-      {
-        id: 's2',
-        image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800',
-        title: 'Dự án AI',
-        description: 'Làm chatbot với GPT 💬'
-      },
-      {
-        id: 's3',
-        image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800',
-        title: 'Code cùng nhau',
-        description: 'Tìm bạn pair programming ✨'
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Trần Hoàng Long',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Long',
-    age: 22,
-    major: 'Toán học',
-    university: 'ĐH Khoa học Tự nhiên',
-    bio: 'Yêu thích giải toán và dạy kèm. Sẵn sàng giúp đỡ bạn học.',
-    subjects: ['Giải tích', 'Đại số', 'Xác suất'],
-    matchScore: 88,
-    hasNewStory: true,
-    stories: [
-      {
-        id: 's1',
-        image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800',
-        title: 'Giải toán',
-        description: 'Bài tập Giải tích 2 📐'
-      },
-      {
-        id: 's2',
-        image: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800',
-        title: 'Học nhóm',
-        description: 'Cùng nhau ôn thi 📚'
-      }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Lê Thị Hương',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Huong',
-    age: 20,
-    major: 'Vật lý',
-    university: 'ĐH Bách Khoa',
-    bio: 'Nghiên cứu vật lý lượng tử. Thích thảo luận và học hỏi.',
-    subjects: ['Vật lý', 'Toán', 'Lập trình'],
-    matchScore: 92,
-    hasNewStory: false,
-    stories: [
-      {
-        id: 's1',
-        image: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=800',
-        title: 'Thí nghiệm',
-        description: 'Lab vật lý lượng tử ⚛️'
-      },
-      {
-        id: 's2',
-        image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800',
-        title: 'Nghiên cứu',
-        description: 'Đọc paper mới 📄'
-      },
-      {
-        id: 's3',
-        image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800',
-        title: 'Tìm bạn học',
-        description: 'Cùng nhau chinh phục vật lý 🚀'
-      }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Phạm Đức Anh',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anh',
-    age: 23,
-    major: 'Kỹ thuật',
-    university: 'ĐH Bách Khoa',
-    bio: 'Đam mê công nghệ và sáng tạo.',
-    subjects: ['Cơ khí', 'Điện tử', 'Lập trình'],
-    matchScore: 85,
-    hasNewStory: true,
-    stories: [
-      {
-        id: 's1',
-        image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800',
-        title: 'Dự án robot',
-        description: 'Làm robot tự động 🤖'
-      }
-    ]
-  },
-  {
-    id: '5',
-    name: 'Võ Thị Mai',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mai',
-    age: 21,
-    major: 'Kinh tế',
-    university: 'ĐH Kinh tế',
-    bio: 'Yêu thích phân tích dữ liệu và kinh doanh.',
-    subjects: ['Kinh tế', 'Thống kê', 'Excel'],
-    matchScore: 78,
-    hasNewStory: false,
-    stories: [
-      {
-        id: 's1',
-        image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
-        title: 'Phân tích dữ liệu',
-        description: 'Học Excel nâng cao 📊'
-      }
-    ]
-  }
-]
 
 export default function DiscoverPage() {
   const router = useRouter()
+  const [partners, setPartners] = useState<Partner[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const progressInterval = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/partners?minMatchScore=70&limit=10')
+        if (!response.ok) {
+          throw new Error('Failed to fetch partners')
+        }
+        const data = await response.json()
+        // Add mock stories to partners since API doesn't return stories yet
+        const partnersWithStories = (data.data || []).map((p: any) => ({
+          ...p,
+          id: p._id,
+          stories: [
+            {
+              id: 's1',
+              image: p.avatar,
+              title: `Học ${p.subjects[0] || 'chung'}`,
+              description: `${p.bio.substring(0, 30)}...`
+            }
+          ],
+          hasNewStory: false
+        }))
+        setPartners(partnersWithStories)
+      } catch (error: any) {
+        toast.error('Không thể tải danh sách đối tác')
+        console.error('Error fetching partners:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPartners()
+  }, [])
 
   // Auto progress story
   useEffect(() => {
@@ -279,37 +184,43 @@ export default function DiscoverPage() {
             </button>
 
             {/* Partner Stories */}
-            {mockPartners.map((partner) => (
-              <button
-                key={partner.id}
-                onClick={() => handleStoryClick(partner)}
-                className="flex-shrink-0 flex flex-col items-center gap-2 group"
-              >
-                <div className="relative">
-                  {/* Story Ring */}
-                  <div className={`absolute inset-0 rounded-full ${
-                    partner.hasNewStory
-                      ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
-                      : 'bg-gray-300'
-                  } p-[3px]`}>
-                    <div className="w-full h-full rounded-full bg-white p-[3px]">
-                      <div className="relative w-full h-full rounded-full overflow-hidden">
-                        <Image
-                          src={partner.avatar}
-                          alt={partner.name}
-                          fill
-                          className="object-cover"
-                        />
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+              </div>
+            ) : (
+              partners.map((partner) => (
+                <button
+                  key={partner._id || partner.id}
+                  onClick={() => handleStoryClick(partner)}
+                  className="flex-shrink-0 flex flex-col items-center gap-2 group"
+                >
+                  <div className="relative">
+                    {/* Story Ring */}
+                    <div className={`absolute inset-0 rounded-full ${
+                      partner.hasNewStory
+                        ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
+                        : 'bg-gray-300'
+                    } p-[3px]`}>
+                      <div className="w-full h-full rounded-full bg-white p-[3px]">
+                        <div className="relative w-full h-full rounded-full overflow-hidden">
+                          <Image
+                            src={partner.avatar}
+                            alt={partner.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
                       </div>
                     </div>
+                    <div className="w-20 h-20" />
                   </div>
-                  <div className="w-20 h-20" />
-                </div>
-                <span className="text-xs text-gray-700 font-medium max-w-[80px] truncate">
-                  {partner.name.split(' ').slice(-2).join(' ')}
-                </span>
-              </button>
-            ))}
+                  <span className="text-xs text-gray-700 font-medium max-w-[80px] truncate">
+                    {partner.name.split(' ').slice(-2).join(' ')}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>

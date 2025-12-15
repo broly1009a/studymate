@@ -68,21 +68,41 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // In a real app, this would be an API call
-      console.log('Profile update:', {
+      const token = localStorage.getItem('auth-token');
+      if (!token) {
+        toast.error('No authentication token found');
+        return;
+      }
+
+      // Import updateUserProfile for API call
+      const { updateUserProfile } = await import('@/lib/api/profile-client');
+
+      const updateData = {
         ...data,
         avatar,
         coverPhoto,
         skills,
-      });
+        education: {
+          level: data.level,
+          institution: data.institution,
+          major: data.major || '',
+          graduationYear: data.graduationYear,
+        },
+        socialLinks: {
+          github: data.github || '',
+          linkedin: data.linkedin || '',
+          twitter: data.twitter || '',
+          website: data.website || '',
+        },
+      };
+
+      const response = await updateUserProfile(token, updateData);
       
       toast.success('Profile updated successfully!');
       router.push('/profile');
     } catch (error) {
-      toast.error('Failed to update profile');
+      toast.error((error as Error).message || 'Failed to update profile');
+      console.error('Update error:', error);
     } finally {
       setIsSubmitting(false);
     }

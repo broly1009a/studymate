@@ -1,12 +1,11 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { getCompetitionById } from '@/lib/mock-data/competitions';
-import { ArrowLeft, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, Users, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,24 +14,77 @@ import { vi } from '@/lib/i18n/vi';
 export default function RegisterCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const competition = getCompetitionById(id);
+  const [competition, setCompetition] = useState<any>(null);
+  const [availableTeams, setAvailableTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
 
   const [registrationType, setRegistrationType] = useState<'solo' | 'team'>('solo');
   const [selectedTeam, setSelectedTeam] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [compRes, teamsRes] = await Promise.all([
+          fetch(`/api/competitions/${id}`),
+          fetch('/api/teams?forCompetition=true'),
+        ]);
+
+        const compData = await compRes.json();
+        const teamsData = await teamsRes.json();
+
+        if (compData.success) setCompetition(compData.data);
+        if (teamsData.success) setAvailableTeams(teamsData.data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        toast.error('Failed to load registration data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!competition) {
     return <div className="w-full">Không tìm thấy cuộc thi</div>;
   }
 
-  const handleRegister = () => {
-    toast.success('Đăng ký thành công!');
-    router.push(`/competitions/${id}`);
-  };
+  const handleRegister = async () => {
+    try {
+      setRegistering(true);
+      const response = await fetch(`/api/competitions/${id}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registrationType,
+          teamId: registrationType === 'team' ? selectedTeam : undefined,
+        }),
+      });
 
-  const availableTeams = [
-    { id: '1', name: 'Code Warriors', members: 2, maxMembers: 3 },
-    { id: '2', name: 'Algorithm Masters', members: 1, maxMembers: 3 },
-  ];
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Đăng ký thành công!');
+        router.push(`/competitions/${id}`);
+      } else {
+        toast.error(data.message || 'Failed to register');
+      }
+    } catch (error) {
+      console.error('Failed to register:', error);
+      toast.error('Failed to register');
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -137,10 +189,11 @@ export default function RegisterCompetitionPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleRegister} className="flex-1">
+            <Button onClick={handleRegister} className="flex-1" disabled={registering}>
+              {registering && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Complete Registration
             </Button>
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="outline" onClick={() => router.back()} disabled={registering}>
               Cancel
             </Button>
           </div>

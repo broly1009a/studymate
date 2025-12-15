@@ -1,31 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getQuestions, getForumStats, getPopularTags } from '@/lib/mock-data/forum';
-import { Search, Plus, MessageSquare, Eye, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, MessageSquare, Eye, TrendingUp, CheckCircle2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { vi as viLocale } from 'date-fns/locale';
 import { vi } from '@/lib/i18n/vi';
+import { toast } from 'sonner';
+
+interface Question {
+  _id: string;
+  id?: string;
+  title: string;
+  content: string;
+  subject: string;
+  tags: string[];
+  votes: number;
+  answersCount: number;
+  views: number;
+  hasAcceptedAnswer: boolean;
+  createdAt: string;
+  authorId?: any;
+  authorName?: string;
+  authorAvatar?: string;
+  authorReputation?: number;
+}
+
+interface ForumStats {
+  totalQuestions: number;
+  openQuestions: number;
+  answeredQuestions: number;
+  totalViews: number;
+}
+
+interface PopularTag {
+  tag: string;
+  count: number;
+}
 
 export default function ForumPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const questions = getQuestions({
-    subject: subjectFilter !== 'all' ? subjectFilter : undefined,
-    status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
-    search: searchQuery || undefined,
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [stats, setStats] = useState<ForumStats>({
+    totalQuestions: 0,
+    openQuestions: 0,
+    answeredQuestions: 0,
+    totalViews: 0,
   });
-  const stats = getForumStats();
-  const popularTags = getPopularTags();
+  const [popularTags, setPopularTags] = useState<PopularTag[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        
+        if (subjectFilter !== 'all') {
+          params.append('subject', subjectFilter);
+        }
+        if (statusFilter !== 'all') {
+          params.append('status', statusFilter);
+        }
+        if (searchQuery) {
+          params.append('search', searchQuery);
+        }
+        params.append('limit', '50');
+
+        const [questionsRes, statsRes, tagsRes] = await Promise.all([
+          fetch(`/api/forum-questions?${params}`),
+          fetch('/api/forum-questions/stats'),
+          fetch('/api/forum-questions/popular-tags'),
+        ]);
+
+        if (questionsRes.ok) {
+          const questionsData = await questionsRes.json();
+          const formattedQuestions = questionsData.data.map((q: any) => ({
+            ...q,
+            id: q._id,
+            authorName: q.authorId?.username || 'Anonymous',
+            authorAvatar: q.authorId?.avatar || '/default-avatar.png',
+            authorReputation: q.authorId?.reputation || 0,
+            answersCount: q.answers?.length || 0,
+            views: q.views || 0,
+            votes: q.upvotes || 0,
+            hasAcceptedAnswer: q.acceptedAnswerId ? true : false,
+          }));
+          setQuestions(formattedQuestions);
+        }
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
+        }
+
+        if (tagsRes.ok) {
+          const tagsData = await tagsRes.json();
+          setPopularTags(tagsData.tags || []);
+        }
+      } catch (error: any) {
+        toast.error('Không thể tải dữ liệu diễn đàn');
+        console.error('Error fetching forum data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      fetchData();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, subjectFilter, statusFilter]);
 
   return (
     <div className="w-full">
@@ -130,7 +224,14 @@ export default function ForumPage() {
 
           {/* Questions List */}
           <div className="space-y-4">
-            {questions.length === 0 ? (
+            {loading ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+                  <h3 className="text-lg font-semibold mb-2">Đang tải câu hỏi...</h3>
+                </CardContent>
+              </Card>
+            ) : questions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -145,13 +246,13 @@ export default function ForumPage() {
               </Card>
             ) : (
               questions.map((question) => (
-                <Link key={question.id} href={`/forum/${question.id}`}>
+                <Link key={question.id || question._id} href={`/forum/${question.id || question._id}`}>
                   <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
                     <CardHeader>
                       <div className="flex items-start gap-4">
                         <Image
-                          src={question.authorAvatar}
-                          alt={question.authorName}
+                          src={question.authorAvatar || '/default-avatar.png'}
+                          alt={question.authorName || 'Anonymous'}
                           width={48}
                           height={48}
                           className="rounded-full"
@@ -169,9 +270,9 @@ export default function ForumPage() {
                             {question.content}
                           </CardDescription>
                           <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
-                            <span className="font-medium">{question.authorName}</span>
+                            <span className="font-medium">{question.authorName || 'Anonymous'}</span>
                             <span>•</span>
-                            <span>{question.authorReputation} uy tín</span>
+                            <span>{question.authorReputation || 0} uy tín</span>
                             <span>•</span>
                             <span>{formatDistanceToNow(new Date(question.createdAt), { addSuffix: true, locale: viLocale })}</span>
                           </div>

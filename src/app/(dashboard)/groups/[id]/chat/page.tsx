@@ -1,11 +1,10 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getGroupById, getGroupMessages } from '@/lib/mock-data/groups';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,17 +12,63 @@ import { vi } from '@/lib/i18n/vi';
 
 export default function GroupChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const group = getGroupById(id);
-  const messages = group ? getGroupMessages(group.id) : [];
+  const [group, setGroup] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChatData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, messagesRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/messages`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const messagesData = await messagesRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (messagesData.success) setMessages(messagesData.data);
+      } catch (error) {
+        console.error('Failed to fetch chat data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChatData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!group) {
     return <div className="w-full">Không tìm thấy nhóm</div>;
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!newMessage.trim()) return;
-    setNewMessage('');
+    try {
+      await fetch(`/api/groups/${id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newMessage }),
+      });
+      setNewMessage('');
+      // Refresh messages
+      const response = await fetch(`/api/groups/${id}/messages`);
+      const data = await response.json();
+      if (data.success) setMessages(data.data);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
 
   return (

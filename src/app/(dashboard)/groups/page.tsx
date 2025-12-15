@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getGroups, getGroupStats } from '@/lib/mock-data/groups';
 import {
   Search,
   Plus,
@@ -32,6 +31,7 @@ import {
   Video,
   Image as ImageIcon,
   File,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -41,13 +41,70 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const [page, setPage] = useState(1);
 
-  const groups = getGroups({
-    category: categoryFilter !== 'all' ? categoryFilter : undefined,
-    visibility: visibilityFilter !== 'all' ? (visibilityFilter as any) : undefined,
-    search: searchQuery || undefined,
-  });
-  const stats = getGroupStats();
+  const [groups, setGroups] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch groups from API
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: '12',
+        });
+
+        if (searchQuery) {
+          params.append('search', searchQuery);
+        }
+
+        if (categoryFilter !== 'all') {
+          params.append('category', categoryFilter);
+        }
+
+        if (visibilityFilter !== 'all') {
+          params.append('visibility', visibilityFilter);
+        }
+
+        const response = await fetch(`/api/groups?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setGroups(data.data);
+          setTotalPages(data.pagination.pages);
+        }
+      } catch (error) {
+        console.error('Failed to fetch groups:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchGroups, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, categoryFilter, visibilityFilter, page]);
+
+  // Fetch stats from API
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/groups/stats');
+        const data = await response.json();
+
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   // 👇 State cho phần Chat Dock
   const [openChats, setOpenChats] = useState<any[]>([]);
@@ -93,7 +150,7 @@ export default function GroupsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số nhóm</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalGroups}</div>
+            <div className="text-2xl font-bold">{stats?.totalGroups || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -101,7 +158,7 @@ export default function GroupsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Nhóm công khai</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{stats.publicGroups}</div>
+            <div className="text-2xl font-bold text-blue-500">{stats?.publicGroups || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -111,7 +168,7 @@ export default function GroupsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-green-500 cursor-pointer hover:underline"
               onClick={() => alert('Sẽ hiện danh sách chat ở góc màn hình')}>
-              {stats.myGroups}
+              {stats?.myGroups || 0}
             </div>
           </CardContent>
         </Card>
@@ -120,7 +177,7 @@ export default function GroupsPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Tổng thành viên</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMembers}</div>
+            <div className="text-2xl font-bold">{stats?.totalMembers || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -170,60 +227,96 @@ export default function GroupsPage() {
       </Card>
 
       {/* Groups List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {groups.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="py-12 text-center">
-              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">Không tìm thấy nhóm</h3>
-              <p className="text-muted-foreground mb-4">
-                Thử điều chỉnh bộ lọc tìm kiếm hoặc tạo nhóm mới
-              </p>
-              <Link href="/groups/new">
-                <Button>Tạo nhóm mới</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          groups.map((group) => (
-            <div key={group.id} onClick={() => toggleChat(group)}>
-              <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
-                <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5">
-                  <Image src={group.coverImage} alt={group.name} fill className="object-cover" />
-                  <div className="absolute top-2 right-2">
-                    {group.visibility === 'private' ? (
-                      <Badge className="bg-red-500/90">
-                        <Lock className="h-3 w-3 mr-1" /> Riêng tư
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-green-500/90">
-                        <Globe className="h-3 w-3 mr-1" /> Công khai
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <CardHeader className="relative">
-                  <div className="absolute -top-8 left-4">
-                    <Image
-                      src={group.avatar}
-                      alt={group.name}
-                      width={64}
-                      height={64}
-                      className="rounded-lg border-4 border-background bg-background"
-                    />
-                  </div>
-                  <div className="pt-8">
-                    <CardTitle className="text-lg">{group.name}</CardTitle>
-                    <CardDescription className="line-clamp-2 mt-2">
-                      {group.description}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {groups.length === 0 ? (
+              <Card className="col-span-full">
+                <CardContent className="py-12 text-center">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">Không tìm thấy nhóm</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Thử điều chỉnh bộ lọc tìm kiếm hoặc tạo nhóm mới
+                  </p>
+                  <Link href="/groups/new">
+                    <Button>Tạo nhóm mới</Button>
+                  </Link>
+                </CardContent>
               </Card>
+            ) : (
+              groups.map((group) => (
+                <div key={group._id} onClick={() => toggleChat(group)}>
+                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
+                    <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5">
+                      <Image
+                        src={group.coverImage || '/default-cover.jpg'}
+                        alt={group.name}
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute top-2 right-2">
+                        {group.visibility === 'private' ? (
+                          <Badge className="bg-red-500/90">
+                            <Lock className="h-3 w-3 mr-1" /> Riêng tư
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-green-500/90">
+                            <Globe className="h-3 w-3 mr-1" /> Công khai
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <CardHeader className="relative">
+                      <div className="absolute -top-8 left-4">
+                        <Image
+                          src={group.avatar || '/default-avatar.png'}
+                          alt={group.name}
+                          width={64}
+                          height={64}
+                          className="rounded-lg border-4 border-background bg-background"
+                        />
+                      </div>
+                      <div className="pt-8">
+                        <CardTitle className="text-lg">{group.name}</CardTitle>
+                        <CardDescription className="line-clamp-2 mt-2">
+                          {group.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mb-6">
+              <Button
+                variant="outline"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+              >
+                Trước
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Trang {page} của {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+              >
+                Sau
+              </Button>
             </div>
-          ))
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       {/* Floating MyGroups Chat Dock */}
       <div className="fixed bottom-6 right-6 flex gap-4 z-50">

@@ -1,20 +1,73 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGoalById } from '@/lib/mock-data/goals';
 import { ArrowLeft, Edit, Trash2, Play, Pause, CheckCircle2, Calendar, TrendingUp, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Goal {
+  _id: string;
+  title: string;
+  description: string;
+  icon: string;
+  status: string;
+  priority: string;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  color: string;
+  endDate: string;
+  startDate: string;
+  completedAt?: string;
+  category: string;
+  subjectName?: string;
+}
 
 export default function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const goal = getGoalById(id);
+  const { user } = useAuth();
+  const [goal, setGoal] = useState<Goal | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id || !id) return;
+
+    const fetchGoal = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/goals/${id}?userId=${user.id}`);
+        if (!response.ok) throw new Error('Failed to fetch goal');
+        const data = await response.json();
+        setGoal(data);
+      } catch (error: any) {
+        toast.error('Failed to load goal');
+        console.error('Error fetching goal:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGoal();
+  }, [user?.id, id]);
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading goal...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!goal) {
     return (
@@ -36,26 +89,87 @@ export default function GoalDetailPage({ params }: { params: Promise<{ id: strin
   const daysElapsed = totalDays - daysLeft;
   const timeProgress = (daysElapsed / totalDays) * 100;
 
-  const handleDelete = () => {
-    toast.success('Goal deleted successfully');
-    setTimeout(() => {
-      router.push('/goals');
-    }, 1000);
-  };
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this goal?')) return;
 
-  const handleToggleStatus = () => {
-    if (goal.status === 'active') {
-      toast.success('Goal paused');
-    } else {
-      toast.success('Goal resumed');
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/goals/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete goal');
+
+      toast.success('Goal deleted successfully');
+      setTimeout(() => {
+        router.push('/goals');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete goal');
+      console.error('Error deleting goal:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const handleComplete = () => {
-    toast.success('Goal marked as completed!');
-    setTimeout(() => {
-      router.push('/goals');
-    }, 1000);
+  const handleToggleStatus = async () => {
+    setIsUpdating(true);
+    try {
+      const newStatus = goal.status === 'active' ? 'paused' : 'active';
+      const response = await fetch(`/api/goals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update goal');
+
+      const updatedGoal = await response.json();
+      setGoal(updatedGoal);
+      
+      if (newStatus === 'active') {
+        toast.success('Goal resumed');
+      } else {
+        toast.success('Goal paused');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update goal');
+      console.error('Error updating goal:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/goals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          status: 'completed',
+          completedAt: new Date(),
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to complete goal');
+
+      toast.success('Goal marked as completed!');
+      setTimeout(() => {
+        router.push('/goals');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to complete goal');
+      console.error('Error completing goal:', error);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -100,12 +214,12 @@ export default function GoalDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex gap-2">
                 {goal.status === 'active' && (
                   <>
-                    <Button onClick={handleToggleStatus} variant="outline">
+                    <Button onClick={handleToggleStatus} variant="outline" disabled={isUpdating}>
                       <Pause className="h-4 w-4 mr-2" />
                       Pause Goal
                     </Button>
                     {progress >= 100 && (
-                      <Button onClick={handleComplete}>
+                      <Button onClick={handleComplete} disabled={isUpdating}>
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         Mark Complete
                       </Button>
@@ -113,7 +227,7 @@ export default function GoalDetailPage({ params }: { params: Promise<{ id: strin
                   </>
                 )}
                 {goal.status === 'paused' && (
-                  <Button onClick={handleToggleStatus}>
+                  <Button onClick={handleToggleStatus} disabled={isUpdating}>
                     <Play className="h-4 w-4 mr-2" />
                     Resume Goal
                   </Button>
@@ -122,9 +236,9 @@ export default function GoalDetailPage({ params }: { params: Promise<{ id: strin
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button variant="outline" onClick={handleDelete}>
+                <Button variant="outline" onClick={handleDelete} disabled={isDeleting}>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                  {isDeleting ? 'Deleting...' : 'Delete'}
                 </Button>
               </div>
             </CardContent>

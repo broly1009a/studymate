@@ -1,19 +1,81 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGoals, getGoalStats } from '@/lib/mock-data/goals';
 import { Plus, Target, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
+import { toast } from 'sonner';
+
+interface Goal {
+  _id: string;
+  title: string;
+  description: string;
+  icon: string;
+  status: string;
+  priority: string;
+  currentValue: number;
+  targetValue: number;
+  unit: string;
+  color: string;
+  endDate: string;
+  startDate: string;
+  completedAt?: string;
+  category: string;
+  subjectName?: string;
+}
+
+interface Stats {
+  total: number;
+  active: number;
+  completed: number;
+  averageProgress: number;
+}
 
 export default function GoalsPage() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
-  const goals = getGoals(filter === 'all' ? {} : { status: filter });
-  const stats = getGoalStats();
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, active: 0, completed: 0, averageProgress: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const fetchGoals = async () => {
+      try {
+        setLoading(true);
+        const queryStatus = filter === 'all' ? '' : `&status=${filter}`;
+        const response = await fetch(`/api/goals?userId=${user.id}${queryStatus}`);
+        if (!response.ok) throw new Error('Failed to fetch goals');
+        const data = await response.json();
+        setGoals(data.data || []);
+      } catch (error: any) {
+        toast.error('Failed to load goals');
+        console.error('Error fetching goals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`/api/goals/stats?userId=${user.id}`);
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        const data = await response.json();
+        setStats(data);
+      } catch (error: any) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchGoals();
+    fetchStats();
+  }, [user?.id, filter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -33,6 +95,16 @@ export default function GoalsPage() {
       default: return 'bg-gray-500/10 text-gray-500';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading goals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -133,7 +205,7 @@ export default function GoalsPage() {
             const daysLeft = Math.ceil((new Date(goal.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
             
             return (
-              <Link key={goal.id} href={`/goals/${goal.id}`}>
+              <Link key={goal._id} href={`/goals/${goal._id}`}>
                 <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
                   <CardHeader>
                     <div className="flex items-start justify-between">

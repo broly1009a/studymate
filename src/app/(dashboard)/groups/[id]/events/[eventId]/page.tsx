@@ -1,11 +1,10 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getGroupById } from '@/lib/mock-data/groups';
-import { ArrowLeft, Calendar, MapPin, Clock, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Clock, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -13,27 +12,71 @@ import { vi } from '@/lib/i18n/vi';
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string; eventId: string }> }) {
   const { id, eventId } = use(params);
-  const group = getGroupById(id);
-  
-  // Mock event data
-  const event = {
-    id: eventId,
-    title: 'Weekly Study Session',
-    description: 'Join us for our weekly study session covering advanced algorithms and data structures.',
-    type: 'study_session',
-    startTime: '2025-11-01T14:00:00',
-    endTime: '2025-11-01T16:00:00',
-    location: 'Library Room 301',
-    attendees: 12,
-    maxAttendees: 20,
-  };
+  const [group, setGroup] = useState<any>(null);
+  const [event, setEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [rsvpLoading, setRsvpLoading] = useState(false);
 
-  if (!group) {
-    return <div className="w-full">Group not found</div>;
+  useEffect(() => {
+    const fetchEventData = async () => {
+      try {
+        setLoading(true);
+        const [groupRes, eventRes] = await Promise.all([
+          fetch(`/api/groups/${id}`),
+          fetch(`/api/groups/${id}/events/${eventId}`),
+        ]);
+
+        const groupData = await groupRes.json();
+        const eventData = await eventRes.json();
+
+        if (groupData.success) setGroup(groupData.data);
+        if (eventData.success) setEvent(eventData.data);
+      } catch (error) {
+        console.error('Failed to fetch event data:', error);
+        toast.error('Failed to load event');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEventData();
+  }, [id, eventId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  const handleRSVP = () => {
-    toast.success('RSVP confirmed!');
+  if (!group || !event) {
+    return <div className="w-full">Event not found</div>;
+  }
+
+  const handleRSVP = async () => {
+    try {
+      setRsvpLoading(true);
+      const response = await fetch(`/api/groups/${id}/events/${eventId}/rsvp`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast.success('RSVP confirmed!');
+        // Refresh event data
+        const eventRes = await fetch(`/api/groups/${id}/events/${eventId}`);
+        const eventData = await eventRes.json();
+        if (eventData.success) setEvent(eventData.data);
+      } else {
+        toast.error(data.message || 'Failed to RSVP');
+      }
+    } catch (error) {
+      console.error('Failed to RSVP:', error);
+      toast.error('Failed to RSVP');
+    } finally {
+      setRsvpLoading(false);
+    }
   };
 
   return (
@@ -102,7 +145,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleRSVP} className="flex-1">
+            <Button onClick={handleRSVP} className="flex-1" disabled={rsvpLoading}>
+              {rsvpLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               RSVP to Event
             </Button>
             <Button variant="outline">Share</Button>

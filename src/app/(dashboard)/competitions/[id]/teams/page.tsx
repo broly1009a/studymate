@@ -1,99 +1,66 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Users, Search, Trophy, UserPlus, Crown } from 'lucide-react';
+import { ArrowLeft, Users, Search, Trophy, UserPlus, Crown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
-
-// Mock teams data
-const mockTeams = [
-  {
-    id: '1',
-    name: 'Code Warriors',
-    members: [
-      { id: '1', name: 'Alex Chen', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex', role: 'leader' },
-      { id: '2', name: 'Sarah Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', role: 'member' },
-      { id: '3', name: 'Mike Wilson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike', role: 'member' },
-    ],
-    score: 2850,
-    rank: 1,
-    university: 'MIT',
-    status: 'active' as const,
-  },
-  {
-    id: '2',
-    name: 'Algorithm Masters',
-    members: [
-      { id: '4', name: 'Emma Davis', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma', role: 'leader' },
-      { id: '5', name: 'James Brown', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James', role: 'member' },
-      { id: '6', name: 'Lisa Wang', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', role: 'member' },
-    ],
-    score: 2720,
-    rank: 2,
-    university: 'Stanford',
-    status: 'active' as const,
-  },
-  {
-    id: '3',
-    name: 'Binary Beasts',
-    members: [
-      { id: '7', name: 'David Kim', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David', role: 'leader' },
-      { id: '8', name: 'Sophie Lee', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie', role: 'member' },
-    ],
-    score: 2650,
-    rank: 3,
-    university: 'Berkeley',
-    status: 'active' as const,
-  },
-  {
-    id: '4',
-    name: 'Debug Dragons',
-    members: [
-      { id: '9', name: 'Tom Anderson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tom', role: 'leader' },
-      { id: '10', name: 'Anna Martinez', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anna', role: 'member' },
-      { id: '11', name: 'Chris Taylor', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chris', role: 'member' },
-    ],
-    score: 2580,
-    rank: 4,
-    university: 'Harvard',
-    status: 'active' as const,
-  },
-  {
-    id: '5',
-    name: 'Syntax Squad',
-    members: [
-      { id: '12', name: 'Rachel Green', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel', role: 'leader' },
-    ],
-    score: 2420,
-    rank: 5,
-    university: 'Princeton',
-    status: 'recruiting' as const,
-  },
-];
 
 export default function CompetitionTeamsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [competition, setCompetition] = useState<any>(null);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const filteredTeams = mockTeams.filter(team => {
-    const matchesSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         team.university.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || team.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchTeamsData = async () => {
+      try {
+        setLoading(true);
+        const [compRes, teamsRes] = await Promise.all([
+          fetch(`/api/competitions/${id}`),
+          fetch(`/api/competitions/${id}/teams`),
+        ]);
+
+        const compData = await compRes.json();
+        const teamsData = await teamsRes.json();
+
+        if (compData.success) setCompetition(compData.data);
+        if (teamsData.success) setTeams(teamsData.data);
+      } catch (error) {
+        console.error('Failed to fetch teams:', error);
+        toast.error('Failed to load teams');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeamsData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const filteredTeams = teams.filter(team =>
+    team.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const stats = {
-    totalTeams: mockTeams.length,
-    activeTeams: mockTeams.filter(t => t.status === 'active').length,
-    recruitingTeams: mockTeams.filter(t => t.status === 'recruiting').length,
-    totalParticipants: mockTeams.reduce((sum, t) => sum + t.members.length, 0),
+    totalTeams: teams.length,
+    activeTeams: teams.filter(t => t.status === 'active').length,
+    recruitingTeams: teams.filter(t => t.status === 'recruiting').length,
+    totalParticipants: teams.reduce((sum, t) => sum + t.members.length, 0),
   };
 
   return (

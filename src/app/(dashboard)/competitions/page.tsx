@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getCompetitions, getCompetitionStats } from '@/lib/mock-data/competitions';
-import { Search, Trophy, Users, Calendar, Clock } from 'lucide-react';
+import { Search, Trophy, Users, Calendar, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -19,14 +18,39 @@ export default function CompetitionsPage() {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
-  
-  const competitions = getCompetitions({
-    subject: subjectFilter !== 'all' ? subjectFilter : undefined,
-    status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
-    difficulty: difficultyFilter !== 'all' ? (difficultyFilter as any) : undefined,
-    search: searchQuery || undefined,
-  });
-  const stats = getCompetitionStats();
+  const [competitions, setCompetitions] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCompetitions = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (subjectFilter !== 'all') params.append('subject', subjectFilter);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (difficultyFilter !== 'all') params.append('difficulty', difficultyFilter);
+
+        const [compRes, statsRes] = await Promise.all([
+          fetch(`/api/competitions?${params.toString()}`),
+          fetch('/api/competitions/stats'),
+        ]);
+
+        const compData = await compRes.json();
+        const statsData = await statsRes.json();
+
+        if (compData.success) setCompetitions(compData.data);
+        if (statsData.success) setStats(statsData.data);
+      } catch (error) {
+        console.error('Failed to fetch competitions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompetitions();
+  }, [searchQuery, subjectFilter, statusFilter, difficultyFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,38 +95,44 @@ export default function CompetitionsPage() {
         <p className="text-muted-foreground mt-2">Cạnh tranh, học hỏi và giành giải thưởng</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số cuộc thi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCompetitions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Sắp diễn ra</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{stats.upcomingCompetitions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Đang diễn ra</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.ongoingCompetitions}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng thí sinh</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalParticipants}</div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số cuộc thi</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalCompetitions || 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Sắp diễn ra</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-500">{stats?.upcomingCompetitions || 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Đang diễn ra</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-500">{stats?.ongoingCompetitions || 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng thí sinh</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.totalParticipants || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -243,7 +273,8 @@ export default function CompetitionsPage() {
             </Link>
           ))
         )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

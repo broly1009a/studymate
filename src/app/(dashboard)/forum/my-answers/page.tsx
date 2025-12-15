@@ -1,73 +1,81 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, MessageSquare, ThumbsUp, CheckCircle, Clock } from 'lucide-react';
+import { ArrowLeft, MessageSquare, ThumbsUp, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
+import { toast } from 'sonner';
 
-// Mock answers data
-const mockAnswers = [
-  {
-    id: '1',
-    questionId: '1',
-    questionTitle: 'How to solve quadratic equations using the quadratic formula?',
-    content: 'The quadratic formula is x = (-b ± √(b²-4ac)) / 2a. Here\'s a step-by-step guide...',
-    votes: 12,
-    isAccepted: true,
-    createdAt: '2025-10-26T14:20:00',
-    questionAuthor: 'Alex Chen',
-  },
-  {
-    id: '2',
-    questionId: '2',
-    questionTitle: 'What is the difference between stack and heap memory?',
-    content: 'Stack memory is used for static memory allocation and heap for dynamic memory allocation...',
-    votes: 8,
-    isAccepted: false,
-    createdAt: '2025-10-25T09:30:00',
-    questionAuthor: 'Sarah Johnson',
-  },
-  {
-    id: '3',
-    questionId: '5',
-    questionTitle: 'Best practices for React hooks?',
-    content: 'Here are the key best practices: 1. Only call hooks at the top level...',
-    votes: 15,
-    isAccepted: true,
-    createdAt: '2025-10-24T16:45:00',
-    questionAuthor: 'Mike Wilson',
-  },
-  {
-    id: '4',
-    questionId: '8',
-    questionTitle: 'How to optimize SQL queries?',
-    content: 'SQL query optimization involves several techniques: indexing, query rewriting...',
-    votes: 6,
-    isAccepted: false,
-    createdAt: '2025-10-23T11:20:00',
-    questionAuthor: 'Emma Davis',
-  },
-];
+interface Answer {
+  _id: string;
+  id?: string;
+  questionId: string;
+  questionTitle: string;
+  content: string;
+  votes: number;
+  isAccepted: boolean;
+  createdAt: string;
+  questionAuthor?: string;
+}
+
+interface AnswerStats {
+  total: number;
+  accepted: number;
+  totalVotes: number;
+}
 
 export default function MyAnswersPage() {
   const [filter, setFilter] = useState<string>('all');
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [stats, setStats] = useState<AnswerStats>({
+    total: 0,
+    accepted: 0,
+    totalVotes: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const filteredAnswers = mockAnswers.filter(answer => {
+  useEffect(() => {
+    const fetchAnswers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/forum-answers/my-answers');
+        if (!response.ok) {
+          throw new Error('Failed to fetch answers');
+        }
+        const data = await response.json();
+        setAnswers(data.data || []);
+        
+        // Calculate stats
+        const total = data.data?.length || 0;
+        const accepted = data.data?.filter((a: any) => a.isAccepted).length || 0;
+        const totalVotes = data.data?.reduce((sum: number, a: any) => sum + (a.votes || 0), 0) || 0;
+        
+        setStats({
+          total,
+          accepted,
+          totalVotes,
+        });
+      } catch (error: any) {
+        toast.error('Không thể tải câu trả lời');
+        console.error('Error fetching answers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnswers();
+  }, []);
+
+  const filteredAnswers = answers.filter(answer => {
     if (filter === 'accepted') return answer.isAccepted;
     if (filter === 'not-accepted') return !answer.isAccepted;
     return true;
   });
-
-  const stats = {
-    total: mockAnswers.length,
-    accepted: mockAnswers.filter(a => a.isAccepted).length,
-    totalVotes: mockAnswers.reduce((sum, a) => sum + a.votes, 0),
-  };
 
   return (
     <div className="w-full">
@@ -139,7 +147,14 @@ export default function MyAnswersPage() {
       </Card>
 
       {/* Answers List */}
-      {filteredAnswers.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Đang tải câu trả lời...</h3>
+          </CardContent>
+        </Card>
+      ) : filteredAnswers.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -155,7 +170,7 @@ export default function MyAnswersPage() {
       ) : (
         <div className="space-y-4">
           {filteredAnswers.map((answer) => (
-            <Card key={answer.id} className="hover:shadow-md transition-shadow">
+            <Card key={answer.id || answer._id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex gap-4">
                   {/* Votes */}
@@ -191,7 +206,7 @@ export default function MyAnswersPage() {
                         <span>Trả lời {format(new Date(answer.createdAt), 'dd/MM/yyyy HH:mm')}</span>
                       </div>
                       <span>•</span>
-                      <span>Câu hỏi của {answer.questionAuthor}</span>
+                      <span>Câu hỏi của {answer.questionAuthor || 'Unknown'}</span>
                     </div>
 
                     <div className="flex items-center gap-2 mt-4">
