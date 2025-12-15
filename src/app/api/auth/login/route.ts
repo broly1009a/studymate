@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { loginSchema } from '@/lib/validations';
 import type { AuthResponse } from '@/types/auth';
-import { createToken, hashPassword, verifyPassword } from '@/lib/api/auth';
+import { createToken, verifyPassword } from '@/lib/api/auth';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/models/User';
 
 // Mock user database - replace with actual DB query
 const mockUsers = [
   {
     id: '1',
     email: 'test@example.com',
-    password: 'hashed_password_123', // In real app, use bcrypt
+    password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Hashed version of 'password123'
     username: 'testuser',
     fullName: 'Test User',
     role: 'student' as const,
@@ -26,8 +28,11 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = loginSchema.parse(body);
 
+    // Connect to database
+    await connectToDatabase();
+
     // Find user by email
-    const user = mockUsers.find((u) => u.email === validatedData.email);
+    const user = await User.findOne({ email: validatedData.email });
 
     if (!user) {
       return NextResponse.json(
@@ -36,10 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In real app, verify password with bcrypt
-    // const passwordMatch = await verifyPassword(validatedData.password, user.password);
-    // For mock, just check if password is 'password123'
-    const passwordMatch = validatedData.password === 'password123';
+    // Verify password with bcrypt
+    const passwordMatch = await verifyPassword(validatedData.password, user.password);
 
     if (!passwordMatch) {
       return NextResponse.json(
@@ -50,13 +53,24 @@ export async function POST(request: NextRequest) {
 
     // Create token
     const token = createToken({
-      id: user.id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
     });
 
-    // Remove sensitive data
-    const { password, ...userWithoutPassword } = user;
+    // Remove sensitive data and convert to plain object
+    const userObj = user.toObject();
+    const userWithoutPassword = {
+      id: userObj._id.toString(),
+      email: userObj.email,
+      username: userObj.email.split('@')[0], // Use email prefix as username
+      fullName: userObj.fullName,
+      avatar: userObj.avatar,
+      role: userObj.role,
+      isEmailVerified: userObj.verified,
+      createdAt: userObj.createdAt.toISOString(),
+      updatedAt: userObj.updatedAt.toISOString(),
+    };
 
     const response: AuthResponse = {
       user: userWithoutPassword,
@@ -67,7 +81,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

@@ -1,12 +1,14 @@
 // Simple JWT-like token implementation
 // In production, use a proper JWT library like 'jsonwebtoken'
 
+import bcrypt from 'bcryptjs';
+
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 interface TokenPayload {
   id: string;
   email: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'teacher' | 'admin';
   iat?: number;
   exp?: number;
 }
@@ -53,30 +55,21 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 /**
- * Hash password (placeholder - use bcrypt in production)
- * In production: import bcrypt from 'bcrypt'
+ * Hash password using bcrypt
  */
 export async function hashPassword(password: string): Promise<string> {
-  // Placeholder implementation
-  // In production:
-  // const salt = await bcrypt.genSalt(10);
-  // return bcrypt.hash(password, salt);
-  
-  return Buffer.from(password).toString('base64');
+  const saltRounds = 10;
+  return bcrypt.hash(password, saltRounds);
 }
 
 /**
- * Verify password against hash (placeholder - use bcrypt in production)
+ * Verify password against hash using bcrypt
  */
 export async function verifyPassword(
   password: string,
   hash: string
 ): Promise<boolean> {
-  // Placeholder implementation
-  // In production:
-  // return bcrypt.compare(password, hash);
-  
-  return Buffer.from(password).toString('base64') === hash;
+  return bcrypt.compare(password, hash);
 }
 
 /**

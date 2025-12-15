@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { registerSchema } from '@/lib/validations';
 import type { AuthResponse } from '@/types/auth';
 import { createToken, hashPassword } from '@/lib/api/auth';
+import { connectToDatabase } from '@/lib/mongodb';
+import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,39 +13,49 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = registerSchema.parse(body);
 
-    // Check if user already exists - in real app, query database
-    // const existingUser = await User.findOne({ $or: [{ email: validatedData.email }, { username: validatedData.username }] });
-    // if (existingUser) {
-    //   return NextResponse.json(
-    //     { error: 'Email or username already exists' },
-    //     { status: 409 }
-    //   );
-    // }
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email: validatedData.email }, { username: validatedData.username }] });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Email or username already exists' },
+        { status: 409 }
+      );
+    }
 
-    // Hash password - in real app, use bcrypt
-    // const hashedPassword = await hashPassword(validatedData.password);
+    // Hash password
+    const hashedPassword = await hashPassword(validatedData.password);
 
-    // Create user - in real app, save to database
-    const newUser = {
-      id: Date.now().toString(),
+    // Create user
+    const newUser = new User({
       email: validatedData.email,
       username: validatedData.username,
       fullName: validatedData.fullName,
-      role: 'student' as const,
+      password: hashedPassword,
+      role: 'student',
       isEmailVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    });
+
+    await newUser.save();
 
     // Create token
     const token = createToken({
-      id: newUser.id,
+      id: newUser._id.toString(),
       email: newUser.email,
       role: newUser.role,
     });
 
     const response: AuthResponse = {
-      user: newUser,
+      user: {
+        id: newUser._id.toString(),
+        email: newUser.email,
+        username: newUser.username,
+        fullName: newUser.fullName,
+        avatar: newUser.avatar,
+        role: newUser.role,
+        isEmailVerified: newUser.verified,
+        createdAt: newUser.createdAt.toISOString(),
+        updatedAt: newUser.updatedAt.toISOString(),
+      },
       token,
     };
 

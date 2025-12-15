@@ -41,6 +41,7 @@ async function connectDB(): Promise<typeof mongoose> {
 
   try {
     cached.conn = await cached.promise;
+    console.log('Connected to MongoDB successfully');
   } catch (e) {
     cached.promise = null;
     throw e;
