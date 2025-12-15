@@ -1,0 +1,236 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "title": "10 Phương pháp học tập hiệu quả cho sinh viên",
+      "slug": "10-phuong-phap-hoc-tap-hieu-qua",
+      "excerpt": "Khám phá những phương pháp học tập được chứng minh khoa học giúp bạn ghi nhớ tốt hơn và đạt kết quả cao.",
+      "content": "# 10 Phương pháp học tập hiệu quả cho sinh viên\n\nHọc tập hiệu quả không chỉ là việc dành nhiều thời gian mà còn là việc áp dụng đúng phương pháp...\n\n## 1. Kỹ thuật Pomodoro\nChia nhỏ thời gian học thành các khoảng 25 phút tập trung cao độ...\n\n## 2. Active Recall\nThay vì đọc lại tài liệu, hãy tự kiểm tra bản thân...",
+      "coverImage": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
+      "authorId": "1",
+      "authorName": "Nguyễn Văn An",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=An",
+      "category": "Học tập",
+      "tags": [
+        "học tập",
+        "phương pháp",
+        "hiệu quả",
+        "sinh viên"
+      ],
+      "views": 1250,
+      "likes": 89,
+      "commentsCount": 15,
+      "readTime": 8,
+      "publishedAt": "2025-10-20T10:00:00",
+      "updatedAt": "2025-10-20T10:00:00",
+      "status": "published",
+      "featured": true
+    },
+    {
+      "id": "2",
+      "title": "Cách sử dụng AI để hỗ trợ học tập",
+      "slug": "cach-su-dung-ai-ho-tro-hoc-tap",
+      "excerpt": "Tìm hiểu cách tận dụng công nghệ AI như ChatGPT để nâng cao hiệu quả học tập của bạn.",
+      "content": "# Cách sử dụng AI để hỗ trợ học tập\n\nAI đang thay đổi cách chúng ta học tập. Dưới đây là những cách hiệu quả nhất...",
+      "coverImage": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800",
+      "authorId": "2",
+      "authorName": "Trần Thị Bình",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Binh",
+      "category": "Công nghệ",
+      "tags": [
+        "AI",
+        "công nghệ",
+        "học tập",
+        "ChatGPT"
+      ],
+      "views": 981,
+      "likes": 67,
+      "commentsCount": 12,
+      "readTime": 6,
+      "publishedAt": "2025-10-22T14:30:00",
+      "updatedAt": "2025-10-22T14:30:00",
+      "status": "published",
+      "featured": true
+    },
+    {
+      "id": "3",
+      "title": "Kinh nghiệm thi đại học từ thủ khoa",
+      "slug": "kinh-nghiem-thi-dai-hoc-thu-khoa",
+      "excerpt": "Chia sẻ từ thủ khoa khối A về cách ôn thi hiệu quả và quản lý thời gian trong kỳ thi.",
+      "content": "# Kinh nghiệm thi đại học từ thủ khoa\n\nXin chào các bạn, mình là Minh, thủ khoa khối A năm nay...",
+      "coverImage": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800",
+      "authorId": "3",
+      "authorName": "Lê Văn Minh",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Minh",
+      "category": "Kinh nghiệm",
+      "tags": [
+        "thi cử",
+        "đại học",
+        "kinh nghiệm",
+        "thủ khoa"
+      ],
+      "views": 2103,
+      "likes": 156,
+      "commentsCount": 28,
+      "readTime": 10,
+      "publishedAt": "2025-10-18T09:00:00",
+      "updatedAt": "2025-10-18T09:00:00",
+      "status": "published",
+      "featured": true
+    },
+    {
+      "id": "4",
+      "title": "Cuộc thi lập trình ACM ICPC 2025",
+      "slug": "cuoc-thi-lap-trinh-acm-icpc-2025",
+      "excerpt": "Thông tin chi tiết về cuộc thi lập trình ACM ICPC 2025 và cách đăng ký tham gia.",
+      "content": "# Cuộc thi lập trình ACM ICPC 2025\n\nACM ICPC là cuộc thi lập trình lớn nhất thế giới...",
+      "coverImage": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800",
+      "authorId": "4",
+      "authorName": "Phạm Thị Dung",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Dung",
+      "category": "Sự kiện",
+      "tags": [
+        "cuộc thi",
+        "lập trình",
+        "ACM ICPC",
+        "sự kiện"
+      ],
+      "views": 750,
+      "likes": 45,
+      "commentsCount": 8,
+      "readTime": 5,
+      "publishedAt": "2025-10-25T16:00:00",
+      "updatedAt": "2025-10-25T16:00:00",
+      "status": "published",
+      "featured": false
+    },
+    {
+      "id": "5",
+      "title": "Cách ghi chú hiệu quả với phương pháp Cornell",
+      "slug": "cach-ghi-chu-hieu-qua-cornell",
+      "excerpt": "Phương pháp ghi chú Cornell giúp bạn tổ chức thông tin tốt hơn và ôn tập hiệu quả.",
+      "content": "# Cách ghi chú hiệu quả với phương pháp Cornell\n\nPhương pháp Cornell được phát triển bởi giáo sư Walter Pauk...",
+      "coverImage": "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800",
+      "authorId": "1",
+      "authorName": "Nguyễn Văn An",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=An",
+      "category": "Học tập",
+      "tags": [
+        "ghi chú",
+        "Cornell",
+        "học tập",
+        "phương pháp"
+      ],
+      "views": 890,
+      "likes": 62,
+      "commentsCount": 10,
+      "readTime": 7,
+      "publishedAt": "2025-10-23T11:00:00",
+      "updatedAt": "2025-10-23T11:00:00",
+      "status": "published",
+      "featured": false
+    },
+    {
+      "id": "479d",
+      "title": "Thông tin cơ bản",
+      "slug": "thông-tin-cơ-bản",
+      "excerpt": "Thông tin cơ bản\n",
+      "content": "Thông tin cơ bản\n",
+      "coverImage": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
+      "authorId": "1",
+      "authorName": "Nguyễn Văn An",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=An",
+      "category": "Công nghệ",
+      "tags": [
+        "Thông tin cơ bản"
+      ],
+      "views": 0,
+      "likes": 0,
+      "commentsCount": 0,
+      "readTime": 1,
+      "publishedAt": "2025-10-31T16:33:53.645Z",
+      "updatedAt": "2025-10-31T16:33:53.645Z",
+      "status": "published",
+      "featured": false
+    },
+    {
+      "id": "a8bc",
+      "title": "dsa",
+      "slug": "dsa",
+      "excerpt": "dsa",
+      "content": "dssa",
+      "coverImage": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
+      "authorId": "1",
+      "authorName": "Nguyễn Văn An",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=An",
+      "category": "Kinh nghiệm",
+      "tags": [
+        "dsa"
+      ],
+      "views": 0,
+      "likes": 0,
+      "commentsCount": 0,
+      "readTime": 1,
+      "publishedAt": "2025-10-31T16:39:57.434Z",
+      "updatedAt": "2025-10-31T16:39:57.434Z",
+      "status": "published",
+      "featured": false
+    }
+  ],
+  "comments": [
+    {
+      "id": "1",
+      "postId": "1",
+      "authorId": "5",
+      "authorName": "Hoàng Văn Hùng",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Hung",
+      "content": "Bài viết rất hữu ích! Mình đã áp dụng kỹ thuật Pomodoro và thấy hiệu quả rõ rệt.",
+      "createdAt": "2025-10-21T10:30:00",
+      "likes": 12
+    },
+    {
+      "id": "2",
+      "postId": "1",
+      "authorId": "6",
+      "authorName": "Vũ Thị Lan",
+      "authorAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Lan",
+      "content": "Cảm ơn bạn đã chia sẻ! Mình sẽ thử Active Recall xem sao.",
+      "createdAt": "2025-10-21T14:20:00",
+      "likes": 8
+    }
+  ],
+  "categories": [
+    {
+      "id": "1",
+      "name": "Học tập",
+      "slug": "hoc-tap",
+      "description": "Mẹo và phương pháp học tập hiệu quả",
+      "postCount": 15,
+      "color": "blue"
+    },
+    {
+      "id": "2",
+      "name": "Công nghệ",
+      "slug": "cong-nghe",
+      "description": "Tin tức và xu hướng công nghệ",
+      "postCount": 12,
+      "color": "purple"
+    },
+    {
+      "id": "3",
+      "name": "Kinh nghiệm",
+      "slug": "kinh-nghiem",
+      "description": "Chia sẻ kinh nghiệm học tập và thi cử",
+      "postCount": 20,
+      "color": "green"
+    },
+    {
+      "id": "4",
+      "name": "Sự kiện",
+      "slug": "su-kien",
+      "description": "Thông tin về các sự kiện và cuộc thi",
+      "postCount": 8,
+      "color": "orange"
+    }
+  ]
+}
