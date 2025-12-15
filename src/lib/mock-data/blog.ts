@@ -283,3 +283,5 @@ export function getBlogStats() {
   };
 }
 
+export { mockPosts as blogPosts, mockCategories as blogCategories, mockComments as blogComments };
+

@@ -240,3 +240,5 @@ export function getLeaderboard(): LeaderboardEntry[] {
   return mockLeaderboard;
 }
 
+export const profiles = [mockUserProfile];
+

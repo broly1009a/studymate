@@ -157,7 +157,7 @@ const mockMessages: { [conversationId: string]: Message[] } = {
     {
       id: '3',
       conversationId: '1',
-      senderId: 'me',
+      senderId: '1',
       senderName: 'Bạn',
       senderAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Me',
       content: '=))',
@@ -175,7 +175,7 @@ const mockMessages: { [conversationId: string]: Message[] } = {
       timestamp: '2025-10-27T22:22:00',
       read: true,
       type: 'text',
-      reactions: [{ emoji: '😊', userId: 'me' }],
+      reactions: [{ emoji: '😊', userId: '1' }],
     },
     {
       id: '5',
@@ -275,4 +275,7 @@ export function getMessagesByConversationId(conversationId: string): Message[] {
 export function getUnreadCount(): number {
   return mockConversations.reduce((sum, c) => sum + c.unreadCount, 0);
 }
+
+export { mockConversations as conversations };
+export const messages = Object.values(mockMessages).flat();
 

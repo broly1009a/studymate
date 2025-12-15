@@ -15,16 +15,17 @@ export interface ICompetition extends Document {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   registrationStartDate: Date;
   registrationEndDate: Date;
+  registrationDeadline?: Date;
   startDate: Date;
   endDate: Date;
   location?: string;
   online: boolean;
   maxParticipants?: number;
-  participants: mongoose.Types.ObjectId[];
+  participants: string[];
   participantCount: number;
   teamSize: { min: number; max: number };
   teamCount: number;
-  winners?: mongoose.Types.ObjectId[];
+  winners?: string[];
   status: 'upcoming' | 'ongoing' | 'completed';
   resultAnnounced: boolean;
   views: number;
@@ -98,6 +99,10 @@ const competitionSchema = new Schema<ICompetition>(
       type: Date,
       required: [true, 'Registration end date is required'],
     },
+    registrationDeadline: {
+      type: Date,
+      default: null,
+    },
     startDate: {
       type: Date,
       required: [true, 'Start date is required'],
@@ -119,8 +124,7 @@ const competitionSchema = new Schema<ICompetition>(
       default: null,
     },
     participants: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: 'User',
+      type: [String],
       default: [],
     },
     participantCount: {
@@ -142,8 +146,7 @@ const competitionSchema = new Schema<ICompetition>(
       default: 0,
     },
     winners: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: 'User',
+      type: [String],
       default: [],
     },
     status: {
@@ -166,7 +169,6 @@ const competitionSchema = new Schema<ICompetition>(
 );
 
 // Indexes
-competitionSchema.index({ slug: 1 });
 competitionSchema.index({ organizerId: 1 });
 competitionSchema.index({ category: 1 });
 competitionSchema.index({ status: 1 });

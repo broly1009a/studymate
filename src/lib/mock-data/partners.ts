@@ -2,6 +2,7 @@
 
 export interface StudyPartner {
   id: string;
+  userId: string;
   name: string;
   avatar: string;
   age: number;
@@ -26,14 +27,16 @@ export interface StudyPartner {
 
 export interface PartnerRequest {
   id: string;
-  partnerId: string;
-  partnerName: string;
-  partnerAvatar: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar: string;
   subject: string;
   message: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
-  type: 'sent' | 'received';
 }
 
 export interface StudySession {
@@ -52,6 +55,7 @@ export interface StudySession {
 const mockPartners: StudyPartner[] = [
   {
     id: '1',
+    userId: '2',
     name: 'Trần Khánh Linh',
     avatar: '/avt1.png',
     age: 21,
@@ -75,6 +79,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '2',
+    userId: '3',
     name: 'Nguyễn Hương Loan',
     avatar: '/avt2.png',
     age: 23,
@@ -98,6 +103,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '3',
+    userId: '4',
     name: 'Võ Quỳnh Anh',
     avatar: '/avt3.png',
     age: 20,
@@ -121,6 +127,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '4',
+    userId: '5',
     name: 'Đỗ Quang Minh',
     avatar: '/avt4.png',
     age: 22,
@@ -144,6 +151,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '5',
+    userId: '6',
     name: 'Dương Công Chiến',
     avatar: '/avt5.png',
     age: 24,
@@ -263,25 +271,29 @@ const mockPartners: StudyPartner[] = [
 const mockRequests: PartnerRequest[] = [
   {
     id: '1',
-    partnerId: '1',
-    partnerName: 'Trần Khánh Linh',
-    partnerAvatar: '/avt1.png',
+    senderId: '2',
+    senderName: 'Trần Khánh Linh',
+    senderAvatar: '/avt1.png',
+    receiverId: '1',
+    receiverName: 'Current User',
+    receiverAvatar: '/avt0.png',
     subject: 'Khoa học Máy tính',
     message: 'Chào bạn! Mình thấy bạn đang học thuật toán. Rất muốn cùng làm việc và giải quyết vấn đề với bạn!',
     status: 'pending',
     createdAt: '2025-10-27T09:00:00',
-    type: 'received',
   },
   {
     id: '2',
-    partnerId: '2',
-    partnerName: 'Nguyễn Hương Loan',
-    partnerAvatar: '/avt2.png',
+    senderId: '1',
+    senderName: 'Current User',
+    senderAvatar: '/avt0.png',
+    receiverId: '3',
+    receiverName: 'Nguyễn Hương Loan',
+    receiverAvatar: '/avt2.png',
     subject: 'Vật lý',
     message: 'Đang tìm bạn học cho môn cơ học lượng tử. Bạn có hứng thú không?',
     status: 'accepted',
     createdAt: '2025-10-26T14:30:00',
-    type: 'sent',
   },
 
 ];
@@ -365,4 +377,6 @@ export function getPartnerStats() {
     averageRating: mockPartners.reduce((sum, p) => sum + p.rating, 0) / mockPartners.length,
   };
 }
+
+export { mockPartners as partners, mockRequests as partnerRequests };
 

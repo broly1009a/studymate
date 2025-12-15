@@ -22,6 +22,7 @@ export interface IUser extends Document {
   reputation: number;
   status: 'active' | 'inactive' | 'banned';
   lastLogin?: Date;
+  mockId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -121,6 +122,10 @@ const userSchema = new Schema<IUser>(
       enum: ['active', 'inactive', 'banned'],
       default: 'active',
     },
+    mockId: {
+      type: String,
+      default: null,
+    },
     lastLogin: {
       type: Date,
       default: null,
@@ -132,7 +137,6 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes
-userSchema.index({ email: 1 });
 userSchema.index({ fullName: 'text', bio: 'text', major: 'text' });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', userSchema);

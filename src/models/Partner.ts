@@ -133,7 +133,6 @@ const partnerSchema = new Schema<IPartner>(
 );
 
 // Indexes
-partnerSchema.index({ userId: 1 });
 partnerSchema.index({ subjects: 1 });
 partnerSchema.index({ rating: -1 });
 partnerSchema.index({ matchScore: -1 });

@@ -21,6 +21,7 @@ export interface StudyGroup {
 
 export interface GroupMember {
   id: string;
+  groupId: string;
   userId: string;
   userName: string;
   userAvatar: string;
@@ -289,6 +290,7 @@ const mockGroups: StudyGroup[] = [
 const mockMembers: GroupMember[] = [
   {
     id: '1',
+    groupId: '1',
     userId: '1',
     userName: 'Sarah Chen',
     userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
@@ -298,6 +300,7 @@ const mockMembers: GroupMember[] = [
   },
   {
     id: '2',
+    groupId: '1',
     userId: '2',
     userName: 'Michael Brown',
     userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael',
@@ -307,6 +310,7 @@ const mockMembers: GroupMember[] = [
   },
   {
     id: '3',
+    groupId: '1',
     userId: '3',
     userName: 'Emma Wilson',
     userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
@@ -450,4 +454,6 @@ export function getGroupStats() {
     totalMembers: mockGroups.reduce((sum, g) => sum + g.memberCount, 0),
   };
 }
+
+export { mockGroups as studyGroups, mockMembers as groupMembers, mockMessages as groupMessages };
 

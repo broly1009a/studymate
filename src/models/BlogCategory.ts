@@ -47,7 +47,6 @@ const blogCategorySchema = new Schema<IBlogCategory>(
 );
 
 // Indexes for common queries
-blogCategorySchema.index({ slug: 1 });
 blogCategorySchema.index({ name: 1 });
 
 const BlogCategory: Model<IBlogCategory> =

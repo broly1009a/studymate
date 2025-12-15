@@ -4,6 +4,7 @@ import { StudySession, Subject, SessionStatus } from '@/types/session';
 export const mockSubjects: Subject[] = [
   {
     id: '1',
+    userId: '1',
     name: 'Mathematics',
     color: '#3b82f6',
     icon: '📐',
@@ -16,6 +17,7 @@ export const mockSubjects: Subject[] = [
   },
   {
     id: '2',
+    userId: '1',
     name: 'Physics',
     color: '#8b5cf6',
     icon: '⚛️',
@@ -28,6 +30,7 @@ export const mockSubjects: Subject[] = [
   },
   {
     id: '3',
+    userId: '1',
     name: 'Computer Science',
     color: '#10b981',
     icon: '💻',
@@ -40,6 +43,7 @@ export const mockSubjects: Subject[] = [
   },
   {
     id: '4',
+    userId: '1',
     name: 'Chemistry',
     color: '#f59e0b',
     icon: '🧪',
@@ -52,6 +56,7 @@ export const mockSubjects: Subject[] = [
   },
   {
     id: '5',
+    userId: '1',
     name: 'English Literature',
     color: '#ec4899',
     icon: '📚',
@@ -250,4 +255,7 @@ export function getSubjectDistribution() {
     color: subject.color,
   }));
 }
+
+export { mockSessions as studySessions };
+export const studySessionRecords = [];
 

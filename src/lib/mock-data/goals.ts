@@ -309,3 +309,5 @@ export function getAchievementStats() {
   };
 }
 
+export { mockGoals as goals };
+

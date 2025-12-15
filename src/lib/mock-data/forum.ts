@@ -405,3 +405,5 @@ export function getPopularTags() {
     .slice(0, 10);
 }
 
+export { mockQuestions as forumQuestions, mockAnswers as forumAnswers };
+

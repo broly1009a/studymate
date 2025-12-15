@@ -118,3 +118,5 @@ export function getNotesStats() {
   };
 }
 
+export { mockNotes as notes, mockFolders as noteFolders };
+

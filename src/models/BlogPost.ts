@@ -119,7 +119,6 @@ const blogPostSchema = new Schema<IBlogPost>(
 );
 
 // Indexes for common queries
-blogPostSchema.index({ slug: 1 });
 blogPostSchema.index({ authorId: 1 });
 blogPostSchema.index({ categoryId: 1 });
 blogPostSchema.index({ status: 1 });
