@@ -16,9 +16,11 @@ import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { StudyGoalsProgress } from '@/components/dashboard/study-goals-progress';
 import type { DashboardData } from '@/types/dashboard';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function HomePage() {
-  const userId = 'user-id-placeholder'; // Should come from auth context
+  const { user } = useAuth();
+  const userId = user?.id || '507f1f77bcf86cd799439011'; // Valid ObjectId placeholder
   
   const [events, setEvents] = useState<any[]>([]);
   const [streak, setStreak] = useState({ current: 0, longest: 0 });

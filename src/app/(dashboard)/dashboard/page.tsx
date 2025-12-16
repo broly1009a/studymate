@@ -138,9 +138,10 @@ const mockDashboardData: DashboardData = {
     {
       id: '3',
       title: 'Project Submission Deadline',
-      type: 'deadline',
+      type: 'exam',
       date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
       time: '11:59 PM',
+      location: 'Online',
     },
   ],
 };

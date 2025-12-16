@@ -1,0 +1,38 @@
+{
+  "info": {
+    "name": "StudyMate Seed Dashboard API",
+    "description": "Collection to seed mock dashboard data into StudyMate database",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Seed Dashboard Mock Data",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clearExisting\": true,\n  \"studyStreak\": {\n    \"current\": 7,\n    \"longest\": 15,\n    \"lastStudyDate\": \"2025-12-17T00:00:00.000Z\"\n  },\n  \"todaySchedule\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Mathematics Study Session\",\n      \"type\": \"study-session\",\n      \"startTime\": \"2025-12-17T14:00:00.000Z\",\n      \"endTime\": \"2025-12-17T15:00:00.000Z\",\n      \"subject\": \"Calculus\",\n      \"participants\": [\"Duy Anh\"]\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Physics Group Meeting\",\n      \"type\": \"group-meeting\",\n      \"startTime\": \"2025-12-17T17:00:00.000Z\",\n      \"endTime\": \"2025-12-17T18:00:00.000Z\",\n      \"subject\": \"Quantum Mechanics\",\n      \"participants\": [\"Alice\", \"Bob\", \"Charlie\"]\n    }\n  ],\n  \"recentActivities\": [\n    {\n      \"id\": \"1\",\n      \"type\": \"answer\",\n      \"title\": \"Answered a question\",\n      \"description\": \"You answered \\\"How to solve quadratic equations?\\\"\",\n      \"timestamp\": \"2025-12-16T23:30:00.000Z\"\n    },\n    {\n      \"id\": \"2\",\n      \"type\": \"match\",\n      \"title\": \"New study partner match\",\n      \"description\": \"You matched with Sarah for Computer Science\",\n      \"timestamp\": \"2025-12-16T22:00:00.000Z\"\n    },\n    {\n      \"id\": \"3\",\n      \"type\": \"group\",\n      \"title\": \"Joined a study group\",\n      \"description\": \"You joined \\\"Advanced Mathematics Study Group\\\"\",\n      \"timestamp\": \"2025-12-16T19:00:00.000Z\"\n    }\n  ],\n  \"studyGoals\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Complete 50 study hours this month\",\n      \"description\": \"Track your monthly study time\",\n      \"target\": 50,\n      \"current\": 32,\n      \"unit\": \"hours\",\n      \"deadline\": \"2025-12-27T00:00:00.000Z\",\n      \"progress\": 64\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Answer 30 questions\",\n      \"description\": \"Help others by answering questions\",\n      \"target\": 30,\n      \"current\": 18,\n      \"unit\": \"questions\",\n      \"deadline\": \"2026-01-01T00:00:00.000Z\",\n      \"progress\": 60\n    }\n  ],\n  \"upcomingEvents\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Midterm Exam - Calculus\",\n      \"type\": \"exam\",\n      \"date\": \"2025-12-20T00:00:00.000Z\",\n      \"time\": \"09:00 AM\",\n      \"location\": \"Room 301\"\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Coding Competition\",\n      \"type\": \"competition\",\n      \"date\": \"2025-12-22T00:00:00.000Z\",\n      \"time\": \"02:00 PM\",\n      \"location\": \"Online\",\n      \"participants\": 150\n    },\n    {\n      \"id\": \"3\",\n      \"title\": \"Project Submission Deadline\",\n      \"type\": \"exam\",\n      \"date\": \"2025-12-24T00:00:00.000Z\",\n      \"time\": \"11:59 PM\",\n      \"location\": \"Online\"\n    }\n  ],\n  \"mockTinderEvents\": [\n    {\n      \"id\": \"1\",\n      \"title\": \"Cuộc thi Lập trình ACM ICPC 2025\",\n      \"description\": \"Cuộc thi lập trình quốc tế dành cho sinh viên\",\n      \"type\": \"competition\",\n      \"date\": \"2025-12-24T00:00:00.000Z\",\n      \"time\": \"09:00 - 17:00\",\n      \"location\": \"HCMUT\",\n      \"participants\": 245,\n      \"maxParticipants\": 300,\n      \"image\": \"/cuocthi.jpg\",\n      \"organizer\": \"ACM ICPC Vietnam\",\n      \"tags\": [\"Lập trình\", \"Thuật toán\", \"Quốc tế\"]\n    },\n    {\n      \"id\": \"2\",\n      \"title\": \"Hackathon AI & Machine Learning\",\n      \"description\": \"Xây dựng giải pháp AI cho bài toán thực tế\",\n      \"type\": \"competition\",\n      \"date\": \"2025-12-31T00:00:00.000Z\",\n      \"time\": \"08:00 - 20:00\",\n      \"location\": \"Online\",\n      \"participants\": 180,\n      \"maxParticipants\": 200,\n      \"image\": \"/cuocthi.jpg\",\n      \"organizer\": \"Google Developer Vietnam\",\n      \"tags\": [\"AI\", \"Machine Learning\", \"Hackathon\"]\n    },\n    {\n      \"id\": \"3\",\n      \"title\": \"Cuộc thi Thiết kế UI/UX 2025\",\n      \"description\": \"Thi thiết kế giao diện người dùng sáng tạo\",\n      \"type\": \"competition\",\n      \"date\": \"2026-01-07T00:00:00.000Z\",\n      \"time\": \"10:00 - 18:00\",\n      \"location\": \"UIT\",\n      \"participants\": 120,\n      \"maxParticipants\": 150,\n      \"image\": \"/cuocthi.jpg\",\n      \"organizer\": \"Design Club UIT\",\n      \"tags\": [\"UI/UX\", \"Design\", \"Creative\"]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/seed-dashboard",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "seed-dashboard"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
