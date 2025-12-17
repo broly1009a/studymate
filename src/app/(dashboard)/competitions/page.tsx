@@ -207,16 +207,22 @@ export default function CompetitionsPage() {
                 </CardContent>
               </Card>
             ) : (
-              competitions.map((competition) => (
-                <Link key={competition.id} href={`/competitions/${competition.id}`}>
+              competitions.map((competition, index) => (
+                <Link key={competition.id || index} href={`/competitions/${competition.id}`}>
                   <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
                     <div className="relative h-40">
-                      <Image
-                        src={competition.banner}
-                        alt={competition.title}
-                        fill
-                        className="object-cover"
-                      />
+                      {competition.banner ? (
+                        <Image
+                          src={competition.banner}
+                          alt={competition.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <Trophy className="h-12 w-12 text-gray-400" />
+                        </div>
+                      )}
                       <div className="absolute top-2 right-2 flex gap-2">
                         <Badge className={getStatusColor(competition.status)}>
                           {getStatusLabel(competition.status)}
