@@ -1,8 +1,8 @@
 // Blog API Service
 import { BlogPost, BlogComment, BlogCategory } from '@/lib/mock-data/blog';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL =  '/api';
 // Helper function for API calls
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -49,9 +49,10 @@ export async function getBlogPosts(filters?: {
   if (filters?.authorId) params.append('authorId', filters.authorId);
   
   const queryString = params.toString();
-  const endpoint = `/posts${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `/blog-posts${queryString ? `?${queryString}` : ''}`;
   
-  let posts = await fetchAPI<BlogPost[]>(endpoint);
+  const response = await fetchAPI<{ success: boolean; data: BlogPost[]; pagination?: any }>(endpoint);
+  let posts = response.data || [];
   
   // Client-side filtering for tags (json-server doesn't support array filtering)
   if (filters?.tag) {
@@ -64,7 +65,8 @@ export async function getBlogPosts(filters?: {
 
 export async function getBlogPostById(id: string): Promise<BlogPost | null> {
   try {
-    return await fetchAPI<BlogPost>(`/posts/${id}`);
+    const response = await fetchAPI<{ success: boolean; data: BlogPost }>(`/blog-posts/${id}`);
+    return response.data || null;
   } catch (error) {
     console.error(`Failed to fetch post ${id}:`, error);
     return null;
@@ -73,8 +75,8 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   try {
-    const posts = await fetchAPI<BlogPost[]>(`/posts?slug=${slug}`);
-    return posts[0] || null;
+    const response = await fetchAPI<{ success: boolean; data: BlogPost[] }>(`/blog-posts?slug=${slug}`);
+    return response.data?.[0] || null;
   } catch (error) {
     console.error(`Failed to fetch post by slug ${slug}:`, error);
     return null;
@@ -82,60 +84,66 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
 }
 
 export async function createBlogPost(post: Omit<BlogPost, 'id'>): Promise<BlogPost> {
-  return await fetchAPI<BlogPost>('/posts', {
+  const response = await fetchAPI<{ success: boolean; data: BlogPost }>('/blog-posts', {
     method: 'POST',
     body: JSON.stringify(post),
   });
+  return response.data;
 }
 
 export async function updateBlogPost(id: string, post: Partial<BlogPost>): Promise<BlogPost> {
-  return await fetchAPI<BlogPost>(`/posts/${id}`, {
+  const response = await fetchAPI<{ success: boolean; data: BlogPost }>(`/blog-posts/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(post),
   });
+  return response.data;
 }
 
 export async function deleteBlogPost(id: string): Promise<void> {
-  await fetchAPI(`/posts/${id}`, {
+  await fetchAPI(`/blog-posts/${id}`, {
     method: 'DELETE',
   });
 }
 
 // Blog Comments API
 export async function getBlogComments(postId: string): Promise<BlogComment[]> {
-  const comments = await fetchAPI<BlogComment[]>(`/comments?postId=${postId}`);
+  const response = await fetchAPI<{ success: boolean; data: BlogComment[] }>(`/blog-comments?postId=${postId}`);
+  const comments = response.data || [];
   return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function createBlogComment(comment: Omit<BlogComment, 'id'>): Promise<BlogComment> {
-  return await fetchAPI<BlogComment>('/comments', {
+  const response = await fetchAPI<{ success: boolean; data: BlogComment }>('/blog-comments', {
     method: 'POST',
     body: JSON.stringify(comment),
   });
+  return response.data;
 }
 
 export async function updateBlogComment(id: string, comment: Partial<BlogComment>): Promise<BlogComment> {
-  return await fetchAPI<BlogComment>(`/comments/${id}`, {
+  const response = await fetchAPI<{ success: boolean; data: BlogComment }>(`/blog-comments/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(comment),
   });
+  return response.data;
 }
 
 export async function deleteBlogComment(id: string): Promise<void> {
-  await fetchAPI(`/comments/${id}`, {
+  await fetchAPI(`/blog-comments/${id}`, {
     method: 'DELETE',
   });
 }
 
 // Blog Categories API
 export async function getBlogCategories(): Promise<BlogCategory[]> {
-  return await fetchAPI<BlogCategory[]>('/categories');
+  const response = await fetchAPI<{ success: boolean; data: BlogCategory[] }>('/blog-categories');
+  return response.data || [];
 }
 
 export async function getBlogCategoryBySlug(slug: string): Promise<BlogCategory | null> {
   try {
-    const categories = await fetchAPI<BlogCategory[]>(`/categories?slug=${slug}`);
-    return categories[0] || null;
+    const response = await fetchAPI<{ success: boolean; data: BlogCategory[] }>(`/blog-categories?slug=${slug}`);
+    return response.data?.[0] || null;
   } catch (error) {
     console.error(`Failed to fetch category by slug ${slug}:`, error);
     return null;
@@ -144,7 +152,8 @@ export async function getBlogCategoryBySlug(slug: string): Promise<BlogCategory 
 
 // Blog Stats API
 export async function getBlogStats() {
-  const posts = await fetchAPI<BlogPost[]>('/posts?status=published');
+  const response = await fetchAPI<{ success: boolean; data: BlogPost[]; pagination?: any }>('/blog-posts?status=published');
+  const posts = response.data || [];
   
   return {
     totalPosts: posts.length,
