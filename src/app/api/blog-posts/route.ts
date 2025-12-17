@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import BlogPost from '@/models/BlogPost';
+import User from '@/models/User';
+import BlogCategory from '@/models/BlogCategory';
 import mongoose from 'mongoose';
 
 // GET - Fetch all blog posts with filtering
@@ -48,16 +50,27 @@ export async function GET(request: NextRequest) {
     const posts = await BlogPost.find(query)
       .skip(skip)
       .limit(limit)
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .populate('authorId', 'fullName avatar email')
-      .populate('categoryId', 'name slug color');
+      .sort({ publishedAt: -1, createdAt: -1 });
+
+    // Populate author and category manually to avoid model registration issues
+    const populatedPosts = await Promise.all(
+      posts.map(async (post) => {
+        const author = await User.findById(post.authorId).select('fullName avatar email');
+        const category = await BlogCategory.findById(post.categoryId).select('name slug color');
+        return {
+          ...post.toObject(),
+          authorId: author,
+          categoryId: category,
+        };
+      })
+    );
 
     const total = await BlogPost.countDocuments(query);
 
     return NextResponse.json(
       {
         success: true,
-        data: posts,
+        data: populatedPosts,
         pagination: {
           page,
           limit,

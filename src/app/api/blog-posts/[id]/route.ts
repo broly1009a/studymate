@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import BlogPost from '@/models/BlogPost';
+import User from '@/models/User';
+import BlogCategory from '@/models/BlogCategory';
 import mongoose from 'mongoose';
 
 // GET - Fetch single post and increment views
@@ -24,9 +26,7 @@ export async function GET(
       postId,
       { $inc: { views: 1 } },
       { new: true }
-    )
-      .populate('authorId', 'fullName avatar email')
-      .populate('categoryId', 'name slug color');
+    );
 
     if (!post) {
       return NextResponse.json(
@@ -35,10 +35,20 @@ export async function GET(
       );
     }
 
+    // Populate author and category manually
+    const author = await User.findById(post.authorId).select('fullName avatar email');
+    const category = await BlogCategory.findById(post.categoryId).select('name slug color');
+
+    const populatedPost = {
+      ...post.toObject(),
+      authorId: author,
+      categoryId: category,
+    };
+
     return NextResponse.json(
       {
         success: true,
-        data: post,
+        data: populatedPost,
       },
       { status: 200 }
     );

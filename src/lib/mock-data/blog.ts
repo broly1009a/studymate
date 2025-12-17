@@ -2,6 +2,7 @@
 
 export interface BlogPost {
   id: string;
+  _id?: string;
   title: string;
   slug: string;
   excerpt: string;
@@ -24,6 +25,7 @@ export interface BlogPost {
 
 export interface BlogComment {
   id: string;
+  _id?: string;
   postId: string;
   authorId: string;
   authorName: string;
@@ -35,6 +37,7 @@ export interface BlogComment {
 
 export interface BlogCategory {
   id: string;
+  _id?: string;
   name: string;
   slug: string;
   description: string;
