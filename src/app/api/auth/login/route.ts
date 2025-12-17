@@ -24,7 +24,7 @@ const mockUsers = [
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
+    //console.log('Login request body:', body);
     // Validate input
     const validatedData = loginSchema.parse(body);
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
 
     // Find user by email
-    const user = await User.findOne({ email: validatedData.email });
+    const user = await User.findOne({ email: validatedData.email }).select('+password');
 
     if (!user) {
       return NextResponse.json(
@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    //console.log('User found:', user.email);
+   // console.log('User password field:', user.password, 'Type:', typeof user.password, 'Length:', user.password?.length);
 
     // Verify password with bcrypt
     const passwordMatch = await verifyPassword(validatedData.password, user.password);
