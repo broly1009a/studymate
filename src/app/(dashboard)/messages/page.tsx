@@ -124,6 +124,15 @@ export default function MessagesPage() {
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
 
+    // Update UI immediately
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv._id === conversationId
+          ? { ...conv, unreadCounts: { ...conv.unreadCounts, [user.id]: 0 } }
+          : conv
+      )
+    );
+
     try {
       await fetch(`/api/conversations/${conversationId}/read`, {
         method: 'POST',
@@ -134,6 +143,14 @@ export default function MessagesPage() {
       });
     } catch (error) {
       console.error('Failed to mark as read:', error);
+      // Revert UI change if API fails
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === conversationId
+            ? { ...conv, unreadCounts: { ...conv.unreadCounts, [user.id]: (conv.unreadCounts[user.id] || 0) + 1 } }
+            : conv
+        )
+      );
     }
   }, [user?.id]);
 
