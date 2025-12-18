@@ -83,16 +83,14 @@ export default function MessagesPage() {
           new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
         setConversations(sortedConversations);
-        if (!selectedConversation && sortedConversations.length > 0) {
-          setSelectedConversation(sortedConversations[0]);
-        }
+        // Don't auto-select any conversation on first load
         return sortedConversations; // Return sorted conversations for joining
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     }
     return [];
-  }, [user?.id, selectedConversation]);
+  }, [user?.id]);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -333,9 +331,18 @@ export default function MessagesPage() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conversation) => {
-            const partnerName = conversation.participantNames.find(name => name !== user?.fullName) || 'Unknown';
-            const unreadCount = conversation.unreadCounts[user?.id || ''] || 0;
+          {isLoading ? (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-muted-foreground">Đang tải cuộc trò chuyện...</p>
+            </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-muted-foreground">Chưa có cuộc trò chuyện nào</p>
+            </div>
+          ) : (
+            filteredConversations.map((conversation) => {
+              const partnerName = conversation.participantNames.find(name => name !== user?.fullName) || 'Unknown';
+              const unreadCount = conversation.unreadCounts[user?.id || ''] || 0;
 
             return (
               <div
@@ -370,7 +377,8 @@ export default function MessagesPage() {
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </div>
       </div>
 
@@ -505,8 +513,21 @@ export default function MessagesPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Chọn một cuộc trò chuyện để bắt đầu</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">Đang tải...</p>
+            </>
+          ) : (
+            <>
+              <div className="text-6xl mb-2">💬</div>
+              <h2 className="text-2xl font-bold">Tin nhắn của bạn</h2>
+              <p className="text-muted-foreground text-center max-w-md">
+                Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin
+              </p>
+            </>
+          )}
         </div>
       )}
 
