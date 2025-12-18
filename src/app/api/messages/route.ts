@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Message from '@/models/Message';
 import Conversation from '@/models/Conversation';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 
 // GET - Fetch messages for a conversation
