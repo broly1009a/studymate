@@ -63,7 +63,6 @@ export default function MessagesPage() {
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { joinConversation, leaveConversation, onNewMessage, emitMessagesRead, onMessagesRead } = useSocket();
 
   // Auto scroll to bottom
@@ -104,7 +103,7 @@ export default function MessagesPage() {
     }
   }, []);
 
-  // Mark messages as read (debounced to avoid excessive API calls)
+  // Mark messages as read
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
 
@@ -127,25 +126,25 @@ export default function MessagesPage() {
     // Emit socket event immediately so other user sees "Đã xem" in real-time
     emitMessagesRead(conversationId, user.id);
 
-    // Debounce API call - only call after 500ms of no new calls
-    if (markReadTimeoutRef.current) {
-      clearTimeout(markReadTimeoutRef.current);
-    }
-
-    markReadTimeoutRef.current = setTimeout(async () => {
-      try {
-        // Call mark-read API to update messages in database
-        await fetch(`/api/conversations/${conversationId}/mark-read`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
-        });
-      } catch (error) {
-        console.error('Failed to mark as read:', error);
+    // Call API immediately (with proper error handling)
+    try {
+      console.log('🔵 Calling mark-read API for conversation:', conversationId);
+      const response = await fetch(`/api/conversations/${conversationId}/mark-read`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      
+      if (!response.ok) {
+        console.error('❌ Mark-read API failed:', response.status, response.statusText);
+      } else {
+        console.log('✅ Mark-read API success');
       }
-    }, 500);
+    } catch (error) {
+      console.error('❌ Failed to mark as read:', error);
+    }
   }, [user?.id, emitMessagesRead]);
 
   // Handle new message from socket
@@ -162,9 +161,10 @@ export default function MessagesPage() {
       }
     }
     
-    // Update conversation list with new message and unread counts
-    setConversations((prev) =>
-      prev.map((conv) => {
+    // Update conversation list with new message, unread counts, AND move to top
+    setConversations((prev) => {
+      // Update the conversation with new message data
+      const updatedConversations = prev.map((conv) => {
         if (conv._id === data.conversation._id) {
           // If this is the current conversation, always keep unread count at 0
           if (isCurrentConversation) {
@@ -184,8 +184,13 @@ export default function MessagesPage() {
           };
         }
         return conv;
-      })
-    );
+      });
+
+      // Sort by lastMessageTime (newest first) - move conversation with new message to top
+      return updatedConversations.sort((a, b) => 
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      );
+    });
   }, [selectedConversation?._id, user?.id, markAsRead]);
 
   useEffect(() => {
@@ -239,13 +244,6 @@ export default function MessagesPage() {
       fetchMessages(selectedConversation._id);
       markAsRead(selectedConversation._id);
     }
-
-    // Cleanup on unmount
-    return () => {
-      if (markReadTimeoutRef.current) {
-        clearTimeout(markReadTimeoutRef.current);
-      }
-    };
   }, [selectedConversation?._id, fetchMessages, markAsRead, user?.id]);
 
   // Auto scroll when messages change
