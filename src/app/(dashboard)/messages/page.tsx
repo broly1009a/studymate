@@ -58,6 +58,7 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
@@ -414,9 +415,22 @@ export default function MessagesPage() {
               const showTimestamp = index === messages.length - 1 || 
                 messages[index + 1]?.senderId !== message.senderId ||
                 new Date(messages[index + 1]?.createdAt).getTime() - new Date(message.createdAt).getTime() > 300000; // 5 minutes
+              
+              // Find the last message sent by current user
+              const lastMyMessageIndex = messages.map((m, i) => ({ m, i }))
+                .reverse()
+                .find(({ m }) => String(m.senderId) === String(user?.id))?.i;
+              
+              const isLastMyMessage = isMe && index === lastMyMessageIndex;
+              const showReadStatus = hoveredMessageId === message._id || isLastMyMessage;
 
               return (
-                <div key={message._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                <div 
+                  key={message._id} 
+                  className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}
+                  onMouseEnter={() => setHoveredMessageId(message._id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
+                >
                   {!isMe && (
                     <Avatar className={`h-7 w-7 ${showAvatar ? '' : 'invisible'}`}>
                       <AvatarImage src={message.senderAvatar} alt={message.senderName} />
@@ -436,7 +450,7 @@ export default function MessagesPage() {
                         <span className="text-xs text-muted-foreground">
                           {format(new Date(message.createdAt), 'HH:mm', { locale: vi })}
                         </span>
-                        {isMe && message.read && (
+                        {isMe && message.read && showReadStatus && (
                           <div className="flex items-center gap-1">
                             <Check className="h-3 w-3 text-primary" />
                             <span className="text-xs text-muted-foreground">Đã xem</span>
