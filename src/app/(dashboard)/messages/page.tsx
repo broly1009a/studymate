@@ -73,11 +73,15 @@ export default function MessagesPage() {
         if (!selectedConversation && data.data.length > 0) {
           setSelectedConversation(data.data[0]);
         }
+        // Join all conversations to receive realtime updates
+        data.data.forEach((conv: Conversation) => {
+          joinConversation(conv._id);
+        });
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     }
-  }, [user?.id]); // Remove selectedConversation dependency
+  }, [user?.id, joinConversation]); // Remove selectedConversation dependency
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -94,16 +98,24 @@ export default function MessagesPage() {
 
   // Handle new message from socket
   const handleNewMessage = useCallback((data: any) => {
+    // If message is for current conversation, add it to messages
     if (selectedConversation && data.message.conversationId === selectedConversation._id) {
       setMessages((prev) => [...prev, data.message]);
     }
-    // Update conversation last message
+    
+    // Always update conversation list with new message and unread counts
     setConversations((prev) =>
-      prev.map((conv) =>
-        conv._id === data.conversation._id
-          ? { ...conv, lastMessage: data.conversation.lastMessage, lastMessageTime: data.conversation.lastMessageTime, unreadCounts: data.conversation.unreadCounts }
-          : conv
-      )
+      prev.map((conv) => {
+        if (conv._id === data.conversation._id) {
+          return { 
+            ...conv, 
+            lastMessage: data.conversation.lastMessage, 
+            lastMessageTime: data.conversation.lastMessageTime, 
+            unreadCounts: data.conversation.unreadCounts 
+          };
+        }
+        return conv;
+      })
     );
   }, [selectedConversation?._id]);
 
@@ -160,16 +172,9 @@ export default function MessagesPage() {
       lastConversationIdRef.current = selectedConversation._id;
       fetchMessages(selectedConversation._id);
       markAsRead(selectedConversation._id);
-      joinConversation(selectedConversation._id);
+      // No need to join here since we already joined all conversations on load
     }
-
-    return () => {
-      if (selectedConversation && selectedConversation._id === lastConversationIdRef.current) {
-        leaveConversation(selectedConversation._id);
-        lastConversationIdRef.current = null;
-      }
-    };
-  }, [selectedConversation?._id]);
+  }, [selectedConversation?._id, fetchMessages, markAsRead]);
 
   const filteredConversations = conversations.filter((conv) =>
     conv.participantNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
