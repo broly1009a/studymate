@@ -362,7 +362,7 @@ export default function MessagesPage() {
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {messages.map((message, index) => {
-              const isMe = message.senderId === user?.id;
+              const isMe = String(message.senderId) === String(user?.id);
               const showAvatar = index === messages.length - 1 || messages[index + 1]?.senderId !== message.senderId;
 
               return (

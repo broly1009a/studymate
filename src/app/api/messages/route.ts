@@ -33,18 +33,34 @@ export async function GET(request: NextRequest) {
     })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('senderId', 'fullName avatar');
+      .limit(limit);
 
     const total = await Message.countDocuments({
       conversationId,
       isDeleted: false,
     });
 
+    // Transform messages to ensure senderId is string
+    const transformedMessages = messages.reverse().map(msg => ({
+      _id: msg._id,
+      conversationId: msg.conversationId,
+      senderId: msg.senderId.toString(), // Convert ObjectId to string
+      senderName: msg.senderName,
+      senderAvatar: msg.senderAvatar,
+      content: msg.content,
+      type: msg.type,
+      fileUrl: msg.fileUrl,
+      fileName: msg.fileName,
+      fileSize: msg.fileSize,
+      read: msg.read,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+    }));
+
     return NextResponse.json(
       {
         success: true,
-        data: messages.reverse(), // Reverse to get chronological order
+        data: transformedMessages,
         pagination: {
           page,
           limit,
