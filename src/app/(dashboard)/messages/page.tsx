@@ -250,8 +250,7 @@ export default function MessagesPage() {
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.map((conversation) => {
-            const otherParticipantIndex = conversation.participants.findIndex(p => p !== user?.id);
-            const partnerName = conversation.participantNames[otherParticipantIndex] || 'Unknown';
+            const partnerName = conversation.participantNames.find(name => name !== user?.fullName) || 'Unknown';
             const unreadCount = conversation.unreadCounts[user?.id || ''] || 0;
 
             return (
