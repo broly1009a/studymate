@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,26 +21,169 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import Link from 'next/link';
-import { getConversations, getMessagesByConversationId, type Conversation } from '@/lib/mock-data/messages';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAuth } from '@/hooks/use-auth';
+import { useSocket } from '@/hooks/use-socket';
+
+interface Conversation {
+  _id: string;
+  participants: string[];
+  participantNames: string[];
+  lastMessage: string;
+  lastMessageTime: Date;
+  unreadCounts: Record<string, number>;
+  isActive: boolean;
+}
+
+interface Message {
+  _id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  content: string;
+  type: string;
+  read: boolean;
+  createdAt: Date;
+}
 
 export default function MessagesPage() {
-  const conversations = getConversations();
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
+  const { user } = useAuth();
+  console.log('Current User:', user);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const messages = selectedConversation ? getMessagesByConversationId(selectedConversation.id) : [];
+  const lastConversationIdRef = useRef<string | null>(null);
+  const { joinConversation, leaveConversation, onNewMessage } = useSocket();
+
+  // Fetch conversations
+  const fetchConversations = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`/api/conversations?userId=${user.id}`);
+      const data = await response.json();
+      if (data.success) {
+        setConversations(data.data);
+        if (!selectedConversation && data.data.length > 0) {
+          setSelectedConversation(data.data[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error);
+    }
+  }, [user?.id]); // Remove selectedConversation dependency
+
+  // Fetch messages for selected conversation
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+      const data = await response.json();
+      if (data.success) {
+        setMessages(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    }
+  }, []);
+
+  // Handle new message from socket
+  const handleNewMessage = useCallback((data: any) => {
+    if (selectedConversation && data.message.conversationId === selectedConversation._id) {
+      setMessages((prev) => [...prev, data.message]);
+    }
+    // Update conversation last message
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv._id === data.conversation._id
+          ? { ...conv, lastMessage: data.conversation.lastMessage, lastMessageTime: data.conversation.lastMessageTime, unreadCounts: data.conversation.unreadCounts }
+          : conv
+      )
+    );
+  }, [selectedConversation?._id]);
+
+  useEffect(() => {
+    const unsubscribe = onNewMessage(handleNewMessage);
+    return unsubscribe;
+  }, [onNewMessage, handleNewMessage]);
+
+  // Load initial data
+  useEffect(() => {
+    if (user?.id) {
+      fetchConversations();
+      setIsLoading(false);
+    }
+  }, [user?.id]); // Only depend on user ID
+
+  // Mark messages as read
+  const markAsRead = useCallback(async (conversationId: string) => {
+    if (!user?.id) return;
+
+    try {
+      await fetch(`/api/conversations/${conversationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  }, [user?.id]);
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (selectedConversation && selectedConversation._id !== lastConversationIdRef.current) {
+      lastConversationIdRef.current = selectedConversation._id;
+      fetchMessages(selectedConversation._id);
+      markAsRead(selectedConversation._id);
+      joinConversation(selectedConversation._id);
+    }
+
+    return () => {
+      if (selectedConversation && selectedConversation._id === lastConversationIdRef.current) {
+        leaveConversation(selectedConversation._id);
+        lastConversationIdRef.current = null;
+      }
+    };
+  }, [selectedConversation?._id]);
 
   const filteredConversations = conversations.filter((conv) =>
-    conv.partnerName.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.participantNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    // TODO: Implement send message
-    setNewMessage('');
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation || !user) return;
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: selectedConversation._id,
+          senderId: user.id,
+          senderName: user.fullName,
+          senderAvatar: user.avatar,
+          content: newMessage,
+        }),
+      });
+
+      if (response.ok) {
+        setNewMessage('');
+      } else {
+        console.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
   return (
@@ -89,41 +232,45 @@ export default function MessagesPage() {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredConversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              className={`flex items-center gap-3 p-3 hover:bg-accent cursor-pointer ${selectedConversation?.id === conversation.id ? 'bg-accent' : ''
-                }`}
-              onClick={() => setSelectedConversation(conversation)}
-            >
-              <div className="relative">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={conversation.partnerAvatar} alt={conversation.partnerName} />
-                  <AvatarFallback>{conversation.partnerName[0]}</AvatarFallback>
-                </Avatar>
-                {conversation.isOnline && (
-                  <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
-                )}
-              </div>
+          {filteredConversations.map((conversation) => {
+            const otherParticipantIndex = conversation.participants.findIndex(p => p !== user?.id);
+            const partnerName = conversation.participantNames[otherParticipantIndex] || 'Unknown';
+            const unreadCount = conversation.unreadCounts[user?.id || ''] || 0;
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm truncate">{conversation.partnerName}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(conversation.lastMessageTime), { locale: vi, addSuffix: false })}
-                  </span>
+            return (
+              <div
+                key={conversation._id}
+                className={`flex items-center gap-3 p-3 hover:bg-accent cursor-pointer ${
+                  selectedConversation?._id === conversation._id ? 'bg-accent' : ''
+                }`}
+                onClick={() => setSelectedConversation(conversation)}
+              >
+                <div className="relative">
+                  <Avatar className="h-14 w-14">
+                    <AvatarFallback>{partnerName[0]}</AvatarFallback>
+                  </Avatar>
+                  {/* TODO: Add online status if available */}
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
-                  {conversation.unreadCount > 0 && (
-                    <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                      {conversation.unreadCount}
-                    </Badge>
-                  )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm truncate">{partnerName}</h3>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(conversation.lastMessageTime), { locale: vi, addSuffix: false })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
+                    {unreadCount > 0 && (
+                      <Badge className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -134,13 +281,17 @@ export default function MessagesPage() {
           <div className="h-16 border-b px-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={selectedConversation.partnerAvatar} alt={selectedConversation.partnerName} />
-                <AvatarFallback>{selectedConversation.partnerName[0]}</AvatarFallback>
+                <AvatarFallback>
+                  {selectedConversation.participantNames.find(name => name !== user?.fullName)?.[0] || 'U'}
+                </AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="font-semibold">{selectedConversation.partnerName}</h2>
+                <h2 className="font-semibold">
+                  {selectedConversation.participantNames.find(name => name !== user?.fullName) || 'Unknown'}
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  {selectedConversation.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+                  {/* TODO: Add online status */}
+                  Đang hoạt động
                 </p>
               </div>
             </div>
@@ -161,11 +312,11 @@ export default function MessagesPage() {
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {messages.map((message, index) => {
-              const isMe = message.senderId === 'me';
+              const isMe = message.senderId === user?.id;
               const showAvatar = index === messages.length - 1 || messages[index + 1]?.senderId !== message.senderId;
 
               return (
-                <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                <div key={message._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
                   {!isMe && (
                     <Avatar className={`h-7 w-7 ${showAvatar ? '' : 'invisible'}`}>
                       <AvatarImage src={message.senderAvatar} alt={message.senderName} />
@@ -180,15 +331,6 @@ export default function MessagesPage() {
                     >
                       <p className="text-sm">{message.content}</p>
                     </div>
-                    {message.reactions && message.reactions.length > 0 && (
-                      <div className="flex gap-1 mt-1">
-                        {message.reactions.map((reaction, idx) => (
-                          <span key={idx} className="text-xs bg-background border rounded-full px-2 py-0.5">
-                            {reaction.emoji}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {isMe && <div className="w-7" />}
@@ -243,12 +385,15 @@ export default function MessagesPage() {
         <div className="w-80 border-l bg-background p-4 overflow-y-auto">
           <div className="flex flex-col items-center text-center mb-6">
             <Avatar className="h-24 w-24 mb-3">
-              <AvatarImage src={selectedConversation.partnerAvatar} alt={selectedConversation.partnerName} />
-              <AvatarFallback>{selectedConversation.partnerName[0]}</AvatarFallback>
+              <AvatarFallback>
+                {selectedConversation.participantNames.find(name => name !== user?.fullName)?.[0] || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <h2 className="text-xl font-bold">{selectedConversation.partnerName}</h2>
+            <h2 className="text-xl font-bold">
+              {selectedConversation.participantNames.find(name => name !== user?.fullName) || 'Unknown'}
+            </h2>
             <p className="text-sm text-muted-foreground mb-1">
-              {selectedConversation.isOnline ? 'Đang hoạt động' : 'Không hoạt động'}
+              Đang hoạt động
             </p>
             <Badge variant="secondary" className="text-xs">
               🔒 End-to-end encrypted

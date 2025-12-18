@@ -4,12 +4,15 @@ import Conversation from '@/models/Conversation';
 import mongoose from 'mongoose';
 
 // POST - Mark conversation as read for user
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
 
+    const { id } = await params;
     const body = await request.json();
     const { userId } = body;
+
+    console.log('Mark as read - Conversation ID:', id, 'User ID:', userId);
 
     if (!userId) {
       return NextResponse.json(
@@ -21,7 +24,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    const conversation = await Conversation.findById(params.id);
+    const conversation = await Conversation.findById(id);
+    console.log('Found conversation:', conversation);
+
     if (!conversation) {
       return NextResponse.json(
         {

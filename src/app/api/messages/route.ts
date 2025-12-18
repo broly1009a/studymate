@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
           _id: conversation._id,
           lastMessage: conversation.lastMessage,
           lastMessageTime: conversation.lastMessageTime,
-          unreadCounts: conversation.unreadCounts,
+          unreadCounts: Object.fromEntries(conversation.unreadCounts),
         }
       });
     }

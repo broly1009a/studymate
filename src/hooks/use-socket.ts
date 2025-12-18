@@ -35,19 +35,25 @@ export const useSocket = () => {
     socket?.emit('typing-stop', { conversationId, userId });
   };
 
-  const onNewMessage = (callback: (data: any) => void) => {
+  const onNewMessage = (callback: (data: any) => void): (() => void) => {
     socket?.on('new-message', callback);
-    return () => socket?.off('new-message', callback);
+    return () => {
+      socket?.off('new-message', callback);
+    };
   };
 
-  const onUserTyping = (callback: (data: any) => void) => {
+  const onUserTyping = (callback: (data: any) => void): (() => void) => {
     socket?.on('user-typing', callback);
-    return () => socket?.off('user-typing', callback);
+    return () => {
+      socket?.off('user-typing', callback);
+    };
   };
 
-  const onUserStopTyping = (callback: (data: any) => void) => {
+  const onUserStopTyping = (callback: (data: any) => void): (() => void) => {
     socket?.on('user-stop-typing', callback);
-    return () => socket?.off('user-stop-typing', callback);
+    return () => {
+      socket?.off('user-stop-typing', callback);
+    };
   };
 
   return {

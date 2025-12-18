@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
+    console.log('Fetching conversations for userId:', userId);
+
     if (!userId) {
       return NextResponse.json(
         {
@@ -35,15 +37,22 @@ export async function GET(request: NextRequest) {
       .skip(skip)
       .limit(limit);
 
+    console.log('Found conversations:', conversations.length);
+
     const total = await Conversation.countDocuments({
       participants: userIdObj,
       isActive: true,
     });
 
+    const transformedConversations = conversations.map(conv => ({
+      ...conv.toObject(),
+      unreadCounts: Object.fromEntries(conv.unreadCounts || new Map()),
+    }));
+
     return NextResponse.json(
       {
         success: true,
-        data: conversations,
+        data: transformedConversations,
         pagination: {
           page,
           limit,
