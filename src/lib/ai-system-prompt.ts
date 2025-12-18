@@ -78,9 +78,11 @@ export const KEYWORD_ROUTING = {
   account_issues: ['tài khoản', 'đăng nhập', 'mật khẩu', 'email'],
   
   // Data Fetching Required
-  my_courses: ['khóa học của tôi', 'khóa học đã đăng ký', 'my courses', 'học gì'],
+  my_courses: ['khóa học của tôi', 'khóa học đã đăng ký', 'my courses', 'học gì', 'môn học của tôi'],
   my_schedule: ['lịch học của tôi', 'thời khoá biểu', 'schedule', 'kế hoạch học'],
   my_progress: ['tiến độ', 'progress', 'hoàn thành', 'bao nhiêu %'],
+  my_competitions: ['cuộc thi của tôi', 'competitions', 'thi của tôi', 'tham gia thi'],
+  my_groups: ['nhóm học của tôi', 'study groups', 'nhóm của tôi', 'tham gia nhóm'],
   pricing: ['giá', 'học phí', 'chi phí', 'bao nhiêu tiền', 'subscription'],
 };
 
@@ -95,6 +97,8 @@ export const DATA_FETCH_TYPES = {
   PRICING: 'PRICING',               // Course pricing & plans
   LESSONS: 'LESSONS',               // Lesson details
   STUDY_GROUPS: 'STUDY_GROUPS',     // Available study groups
+  COMPETITIONS: 'COMPETITIONS',     // Available competitions
+  FORUM: 'FORUM',                   // Forum questions
 };
 
 /**
