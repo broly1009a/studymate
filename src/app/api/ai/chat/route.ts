@@ -165,17 +165,40 @@ export async function POST(request: NextRequest) {
     // Step 3: Use LLM for complex questions
     const openaiResult = await callOpenAIWithCache(trimmedMessage);
 
-    // Calculate cost estimate (VND)
     const totalTokens = openaiResult.inputTokens + openaiResult.outputTokens;
-    const costPerMillionTokens = 3000; // ~0.15 USD per 1M tokens = ~3600 VND
-    const estimatedCostVND = (totalTokens / 1_000_000) * costPerMillionTokens;
+
+    // Calculate cost estimate (USD and VND)
+    const inputCostPerMillion = 0.15; // USD per 1M input tokens
+    const outputCostPerMillion = 0.60; // USD per 1M output tokens
+    const estimatedCostUSD = (openaiResult.inputTokens / 1_000_000) * inputCostPerMillion + (openaiResult.outputTokens / 1_000_000) * outputCostPerMillion;
+    const estimatedCostVND = estimatedCostUSD * 25000; // Approximate VND per USD
+
+    // Check if LLM returned an action
+    if (openaiResult.response.startsWith('ACTION_REQUIRED:')) {
+      const action = openaiResult.response.replace('ACTION_REQUIRED: ', '');
+      return NextResponse.json({
+        response: `Tôi cần lấy dữ liệu của bạn từ hệ thống để trả lời chính xác.`,
+        type: 'action_required',
+        action: action,
+        metadata: {
+          tokensUsed: totalTokens,
+          costEstimate: estimatedCostUSD,
+          costEstimateVND: estimatedCostVND,
+          breakdown: {
+            inputTokens: openaiResult.inputTokens,
+            outputTokens: openaiResult.outputTokens,
+          },
+        },
+      });
+    }
 
     return NextResponse.json({
       response: openaiResult.response,
       type: 'answer',
       metadata: {
         tokensUsed: totalTokens,
-        costEstimate: estimatedCostVND,
+        costEstimate: estimatedCostUSD,
+        costEstimateVND: estimatedCostVND,
         breakdown: {
           inputTokens: openaiResult.inputTokens,
           outputTokens: openaiResult.outputTokens,
