@@ -5,9 +5,7 @@ export interface IConversation extends Document {
   participantNames: string[];
   lastMessage?: string;
   lastMessageTime?: Date;
-  unreadCounts: {
-    [userId: string]: number;
-  };
+  unreadCounts: Map<string, number>;
   subject?: string;
   isActive: boolean;
   createdAt: Date;
