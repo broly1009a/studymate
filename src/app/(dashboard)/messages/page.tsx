@@ -19,9 +19,10 @@ import {
   Image as ImageIcon,
   Paperclip,
   ThumbsUp,
+  Check,
 } from 'lucide-react';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
 import { useSocket } from '@/hooks/use-socket';
@@ -60,7 +61,13 @@ export default function MessagesPage() {
 
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinConversation, leaveConversation, onNewMessage } = useSocket();
+
+  // Auto scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
@@ -204,6 +211,11 @@ export default function MessagesPage() {
       // No need to join here since we already joined all conversations on load
     }
   }, [selectedConversation?._id, fetchMessages, markAsRead]);
+
+  // Auto scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const filteredConversations = conversations.filter((conv) =>
     conv.participantNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -364,6 +376,9 @@ export default function MessagesPage() {
             {messages.map((message, index) => {
               const isMe = String(message.senderId) === String(user?.id);
               const showAvatar = index === messages.length - 1 || messages[index + 1]?.senderId !== message.senderId;
+              const showTimestamp = index === messages.length - 1 || 
+                messages[index + 1]?.senderId !== message.senderId ||
+                new Date(messages[index + 1]?.createdAt).getTime() - new Date(message.createdAt).getTime() > 300000; // 5 minutes
 
               return (
                 <div key={message._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -374,19 +389,33 @@ export default function MessagesPage() {
                     </Avatar>
                   )}
 
-                  <div className={`max-w-[60%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                  <div className={`max-w-[60%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
                     <div
                       className={`px-4 py-2 rounded-2xl ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'
                         }`}
                     >
                       <p className="text-sm">{message.content}</p>
                     </div>
+                    {showTimestamp && (
+                      <div className={`flex items-center gap-1 px-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(message.createdAt), 'HH:mm', { locale: vi })}
+                        </span>
+                        {isMe && message.read && (
+                          <div className="flex items-center gap-1">
+                            <Check className="h-3 w-3 text-primary" />
+                            <span className="text-xs text-muted-foreground">Đã xem</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {isMe && <div className="w-7" />}
                 </div>
               );
             })}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Message Input */}
