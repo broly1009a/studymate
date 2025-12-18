@@ -22,6 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import mongoose from 'mongoose';
 import {
   STUDYMATE_SYSTEM_PROMPT,
   TEMPLATE_RESPONSES,
@@ -29,10 +30,35 @@ import {
   DATA_FETCH_TYPES,
   formatAIResponse,
 } from '@/lib/ai-system-prompt';
+import { connectDB } from '@/lib/mongodb';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Function to get real data from database
+async function getRealData(type: string, userId?: string) {
+  await connectDB();
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('Database connection not established');
+  }
+  switch (type) {
+    case 'COURSES':
+      return await db.collection('subjects').find(userId ? { userId } : {}).toArray();
+    case 'SCHEDULE':
+      return await db.collection('studysessions').find(userId ? { userId } : {}).toArray();
+    case 'COMPETITIONS':
+      return await db.collection('competitions').find({}).toArray();
+    case 'STUDY_GROUPS':
+      return await db.collection('studygroups').find({}).toArray();
+    case 'FORUM':
+      return await db.collection('questions').find({}).toArray();
+    default:
+      // Nếu loại data không nằm trong hệ thống, trả về null để xử lý phía trên
+      return null;
+  }
+}
 
 /**
  * Classify user message without calling LLM
@@ -151,13 +177,47 @@ export async function POST(request: NextRequest) {
     }
 
     if (classification.type === 'data_required') {
+      if (!classification.dataFetchType) {
+        return NextResponse.json({
+          response: 'Tính năng hoặc dữ liệu này hiện chưa được hỗ trợ trong hệ thống StudyMate.',
+          type: 'answer',
+          metadata: {
+            tokensUsed: 0,
+            costEstimate: 0,
+            costEstimateVND: 0,
+            source: 'system',
+          },
+        });
+      }
+      const data = await getRealData(classification.dataFetchType, body.userId);
+      if (data === null) {
+        return NextResponse.json({
+          response: 'Tính năng hoặc dữ liệu này hiện chưa được hỗ trợ trong hệ thống StudyMate.',
+          type: 'answer',
+          metadata: {
+            tokensUsed: 0,
+            costEstimate: 0,
+            costEstimateVND: 0,
+            source: 'system',
+          },
+        });
+      }
+      const dataPrompt = `Dữ liệu của user: ${JSON.stringify(data)}`;
+      const openaiResult = await callOpenAIWithCache(trimmedMessage + '\n' + dataPrompt);
+      const totalTokens = openaiResult.inputTokens + openaiResult.outputTokens;
+      const estimatedCostUSD = (openaiResult.inputTokens / 1_000_000) * 0.15 + (openaiResult.outputTokens / 1_000_000) * 0.60;
+      const estimatedCostVND = estimatedCostUSD * 25000;
       return NextResponse.json({
-        response: `Tôi cần lấy dữ liệu của bạn từ hệ thống để trả lời chính xác.`,
-        type: 'action_required',
-        action: `FETCH_DATA[${classification.dataFetchType}]`,
+        response: openaiResult.response,
+        type: 'answer',
         metadata: {
-          dataType: classification.dataFetchType,
-          tokensUsed: 0,
+          tokensUsed: totalTokens,
+          costEstimate: estimatedCostUSD,
+          costEstimateVND: estimatedCostVND,
+          breakdown: {
+            inputTokens: openaiResult.inputTokens,
+            outputTokens: openaiResult.outputTokens,
+          },
         },
       });
     }
@@ -176,17 +236,35 @@ export async function POST(request: NextRequest) {
     // Check if LLM returned an action
     if (openaiResult.response.startsWith('ACTION_REQUIRED:')) {
       const action = openaiResult.response.replace('ACTION_REQUIRED: ', '');
+      const type = action.replace('FETCH_DATA[', '').replace(']', '');
+      const data = await getRealData(type, body.userId);
+      if (data === null) {
+        return NextResponse.json({
+          response: 'Tính năng hoặc dữ liệu này hiện chưa được hỗ trợ trong hệ thống StudyMate.',
+          type: 'answer',
+          metadata: {
+            tokensUsed: 0,
+            costEstimate: 0,
+            costEstimateVND: 0,
+            source: 'system',
+          },
+        });
+      }
+      const dataPrompt = `Dữ liệu của user: ${JSON.stringify(data)}`;
+      const response = await callOpenAIWithCache(trimmedMessage + '\n' + dataPrompt);
+      const totalTokens2 = response.inputTokens + response.outputTokens + totalTokens;
+      const estimatedCostUSD2 = (response.inputTokens / 1e6) * 0.15 + (response.outputTokens / 1e6) * 0.60 + estimatedCostUSD;
+      const estimatedCostVND2 = estimatedCostUSD2 * 25000;
       return NextResponse.json({
-        response: `Tôi cần lấy dữ liệu của bạn từ hệ thống để trả lời chính xác.`,
-        type: 'action_required',
-        action: action,
+        response: response.response,
+        type: 'answer',
         metadata: {
-          tokensUsed: totalTokens,
-          costEstimate: estimatedCostUSD,
-          costEstimateVND: estimatedCostVND,
+          tokensUsed: totalTokens2,
+          costEstimate: estimatedCostUSD2,
+          costEstimateVND: estimatedCostVND2,
           breakdown: {
-            inputTokens: openaiResult.inputTokens,
-            outputTokens: openaiResult.outputTokens,
+            inputTokens: response.inputTokens + openaiResult.inputTokens,
+            outputTokens: response.outputTokens + openaiResult.outputTokens,
           },
         },
       });
