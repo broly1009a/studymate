@@ -59,6 +59,7 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const lastConversationIdRef = useRef<string | null>(null);
+  const joinedConversationsRef = useRef<Set<string>>(new Set());
   const { joinConversation, leaveConversation, onNewMessage } = useSocket();
 
   // Fetch conversations
@@ -73,15 +74,13 @@ export default function MessagesPage() {
         if (!selectedConversation && data.data.length > 0) {
           setSelectedConversation(data.data[0]);
         }
-        // Join all conversations to receive realtime updates
-        data.data.forEach((conv: Conversation) => {
-          joinConversation(conv._id);
-        });
+        return data.data; // Return conversations for joining
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     }
-  }, [user?.id, joinConversation]); // Remove selectedConversation dependency
+    return [];
+  }, [user?.id, selectedConversation]);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (conversationId: string) => {
@@ -95,42 +94,6 @@ export default function MessagesPage() {
       console.error('Failed to fetch messages:', error);
     }
   }, []);
-
-  // Handle new message from socket
-  const handleNewMessage = useCallback((data: any) => {
-    // If message is for current conversation, add it to messages
-    if (selectedConversation && data.message.conversationId === selectedConversation._id) {
-      setMessages((prev) => [...prev, data.message]);
-    }
-    
-    // Always update conversation list with new message and unread counts
-    setConversations((prev) =>
-      prev.map((conv) => {
-        if (conv._id === data.conversation._id) {
-          return { 
-            ...conv, 
-            lastMessage: data.conversation.lastMessage, 
-            lastMessageTime: data.conversation.lastMessageTime, 
-            unreadCounts: data.conversation.unreadCounts 
-          };
-        }
-        return conv;
-      })
-    );
-  }, [selectedConversation?._id]);
-
-  useEffect(() => {
-    const unsubscribe = onNewMessage(handleNewMessage);
-    return unsubscribe;
-  }, [onNewMessage, handleNewMessage]);
-
-  // Load initial data
-  useEffect(() => {
-    if (user?.id) {
-      fetchConversations();
-      setIsLoading(false);
-    }
-  }, [user?.id]); // Only depend on user ID
 
   // Mark messages as read
   const markAsRead = useCallback(async (conversationId: string) => {
@@ -165,6 +128,72 @@ export default function MessagesPage() {
       );
     }
   }, [user?.id]);
+
+  // Handle new message from socket
+  const handleNewMessage = useCallback((data: any) => {
+    const isCurrentConversation = selectedConversation && data.message.conversationId === selectedConversation._id;
+    
+    // If message is for current conversation, add it to messages
+    if (isCurrentConversation) {
+      setMessages((prev) => [...prev, data.message]);
+      
+      // Auto mark as read if we're in this conversation and message is from other user
+      if (data.message.senderId !== user?.id) {
+        markAsRead(selectedConversation._id);
+      }
+    }
+    
+    // Update conversation list with new message and unread counts
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv._id === data.conversation._id) {
+          // If this is the current conversation and message is from other user, set unread to 0
+          if (isCurrentConversation && data.message.senderId !== user?.id) {
+            return {
+              ...conv,
+              lastMessage: data.conversation.lastMessage,
+              lastMessageTime: data.conversation.lastMessageTime,
+              unreadCounts: { ...data.conversation.unreadCounts, [user?.id || '']: 0 }
+            };
+          }
+          // Otherwise, use the unread count from server
+          return { 
+            ...conv, 
+            lastMessage: data.conversation.lastMessage, 
+            lastMessageTime: data.conversation.lastMessageTime, 
+            unreadCounts: data.conversation.unreadCounts 
+          };
+        }
+        return conv;
+      })
+    );
+  }, [selectedConversation?._id, user?.id, markAsRead]);
+
+  useEffect(() => {
+    const unsubscribe = onNewMessage(handleNewMessage);
+    return unsubscribe;
+  }, [onNewMessage, handleNewMessage]);
+
+  // Load initial data and join conversations once
+  useEffect(() => {
+    const loadAndJoinConversations = async () => {
+      if (user?.id) {
+        const convs = await fetchConversations();
+        // Join only new conversations that haven't been joined yet
+        if (convs && Array.isArray(convs)) {
+          convs.forEach((conv: Conversation) => {
+            if (!joinedConversationsRef.current.has(conv._id)) {
+              joinConversation(conv._id);
+              joinedConversationsRef.current.add(conv._id);
+            }
+          });
+        }
+        setIsLoading(false);
+      }
+    };
+    
+    loadAndJoinConversations();
+  }, [user?.id]); // Only run once when user ID is available
 
   // Load messages when conversation changes
   useEffect(() => {
