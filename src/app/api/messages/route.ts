@@ -105,6 +105,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ensure unreadCounts is a Map
+    if (!(conversation.unreadCounts instanceof Map)) {
+      conversation.unreadCounts = new Map(Object.entries(conversation.unreadCounts || {}));
+    }
+
     // Create message
     const message = new Message({
       conversationId,
@@ -139,6 +144,32 @@ export async function POST(request: NextRequest) {
     }
 
     await conversation.save();
+
+    // Emit realtime event to conversation room
+    if (global.io) {
+      global.io.to(conversationId).emit('new-message', {
+        message: {
+          _id: message._id,
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          senderName: message.senderName,
+          senderAvatar: message.senderAvatar,
+          content: message.content,
+          type: message.type,
+          fileUrl: message.fileUrl,
+          fileName: message.fileName,
+          fileSize: message.fileSize,
+          read: message.read,
+          createdAt: message.createdAt,
+        },
+        conversation: {
+          _id: conversation._id,
+          lastMessage: conversation.lastMessage,
+          lastMessageTime: conversation.lastMessageTime,
+          unreadCounts: conversation.unreadCounts,
+        }
+      });
+    }
 
     return NextResponse.json(
       {
