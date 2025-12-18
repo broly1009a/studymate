@@ -78,11 +78,15 @@ export default function MessagesPage() {
       const response = await fetch(`/api/conversations?userId=${user.id}`);
       const data = await response.json();
       if (data.success) {
-        setConversations(data.data);
-        if (!selectedConversation && data.data.length > 0) {
-          setSelectedConversation(data.data[0]);
+        // Sort conversations by lastMessageTime (newest first)
+        const sortedConversations = data.data.sort((a: Conversation, b: Conversation) => 
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+        );
+        setConversations(sortedConversations);
+        if (!selectedConversation && sortedConversations.length > 0) {
+          setSelectedConversation(sortedConversations[0]);
         }
-        return data.data; // Return conversations for joining
+        return sortedConversations; // Return sorted conversations for joining
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
