@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Activity from '@/models/Activity';
+import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    const query: any = { userId };
+    const query: any = { userId: new mongoose.Types.ObjectId(userId) };
     if (type) query.type = type;
 
     const activities = await Activity.find(query)
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newActivity = new Activity({
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
       type,
       title,
       description,

@@ -16,9 +16,11 @@ import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { StudyGoalsProgress } from '@/components/dashboard/study-goals-progress';
 import type { DashboardData } from '@/types/dashboard';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function HomePage() {
-  const userId = 'user-id-placeholder'; // Should come from auth context
+  const { user, isLoading: authLoading } = useAuth();
+  const userId = user?.id;
   
   const [events, setEvents] = useState<any[]>([]);
   const [streak, setStreak] = useState({ current: 0, longest: 0 });
@@ -32,10 +34,28 @@ export default function HomePage() {
     upcomingDeadlines: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadedItems, setLoadedItems] = useState({
+    schedule: false,
+    activities: false,
+    events: false,
+    streak: false,
+    goals: false,
+    stats: false,
+  });
+
+  // Check if all items are loaded
+  useEffect(() => {
+    const allLoaded = Object.values(loadedItems).every(loaded => loaded);
+    if (allLoaded) {
+      setLoading(false);
+    }
+  }, [loadedItems]);
 
   // Fetch today's schedule
   useEffect(() => {
     const fetchSchedule = async () => {
+      if (!userId) return;
+
       try {
         const response = await fetch(`/api/dashboard-data/today-schedule?userId=${userId}`);
         const result = await response.json();
@@ -44,27 +64,31 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Failed to fetch schedule:', error);
+      } finally {
+        setLoadedItems(prev => ({ ...prev, schedule: true }));
       }
     };
 
-    if (userId) fetchSchedule();
+    fetchSchedule();
   }, [userId]);
 
   // Fetch recent activities
   useEffect(() => {
     const fetchActivities = async () => {
+      if (!userId) return;
+
       try {
         const response = await fetch(`/api/activities?userId=${userId}&limit=3`);
         const result = await response.json();
-        if (result.success) {
-          setRecentActivities(result.data);
-        }
+        setRecentActivities(result.data || []);
       } catch (error) {
         console.error('Failed to fetch activities:', error);
+      } finally {
+        setLoadedItems(prev => ({ ...prev, activities: true }));
       }
     };
 
-    if (userId) fetchActivities();
+    fetchActivities();
   }, [userId]);
 
   // Fetch events
@@ -78,6 +102,8 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Failed to fetch events:', error);
+      } finally {
+        setLoadedItems(prev => ({ ...prev, events: true }));
       }
     };
 
@@ -87,6 +113,8 @@ export default function HomePage() {
   // Fetch study streak
   useEffect(() => {
     const fetchStreak = async () => {
+      if (!userId) return;
+
       try {
         const response = await fetch(`/api/study-streak?userId=${userId}`);
         const result = await response.json();
@@ -95,34 +123,39 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Failed to fetch streak:', error);
+      } finally {
+        setLoadedItems(prev => ({ ...prev, streak: true }));
       }
     };
 
-    if (userId) fetchStreak();
+    fetchStreak();
   }, [userId]);
 
   // Fetch goals
   useEffect(() => {
     const fetchGoals = async () => {
+      if (!userId) return;
+
       try {
         const response = await fetch(`/api/goals?userId=${userId}&status=active&limit=2`);
         const result = await response.json();
-        if (result.success) {
-          setGoals(result.data);
-        }
+        setGoals(result.data || []);
       } catch (error) {
         console.error('Failed to fetch goals:', error);
+      } finally {
+        setLoadedItems(prev => ({ ...prev, goals: true }));
       }
     };
 
-    if (userId) fetchGoals();
+    fetchGoals();
   }, [userId]);
 
   // Fetch quick stats
   useEffect(() => {
     const fetchStats = async () => {
+      if (!userId) return;
+
       try {
-        setLoading(true);
         const response = await fetch(`/api/dashboard-data/stats?userId=${userId}`);
         const result = await response.json();
         if (result.success) {
@@ -131,11 +164,11 @@ export default function HomePage() {
       } catch (error) {
         console.error('Failed to fetch stats:', error);
       } finally {
-        setLoading(false);
+        setLoadedItems(prev => ({ ...prev, stats: true }));
       }
     };
 
-    if (userId) fetchStats();
+    fetchStats();
   }, [userId]);
 
   const stats = {
@@ -145,13 +178,34 @@ export default function HomePage() {
     meetings: events.filter((e) => e.type === 'group-meeting').length,
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a7c1] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Please log in to view your dashboard.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header with Welcome */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">
           Chào mừng trở lại,{' '}
-          <span className="text-[#6059f7]">Duy Anh</span>! 👋
+          <span className="text-[#6059f7]">{user.fullName || user.username}</span>! 👋
         </h1>
         <p className="text-muted-foreground">
           Khám phá sự kiện mới và theo dõi hoạt động học tập của bạn

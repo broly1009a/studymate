@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     const subject = searchParams.get('subject');
     const status = searchParams.get('status') || 'scheduled';
     const search = searchParams.get('search');
+    const userId = searchParams.get('userId');
+    const date = searchParams.get('date'); // 'today', 'week', or specific date
 
     const skip = (page - 1) * limit;
     let query: any = { status };
@@ -25,6 +27,35 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query.$text = { $search: search };
+    }
+
+    if (userId) {
+      query.creatorId = new mongoose.Types.ObjectId(userId);
+    }
+
+    if (date) {
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date;
+
+      if (date === 'today') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      } else if (date === 'week') {
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        startDate = startOfWeek;
+        endDate = new Date(startOfWeek);
+        endDate.setDate(startOfWeek.getDate() + 7);
+      } else {
+        // Specific date
+        startDate = new Date(date);
+        endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 1);
+      }
+
+      query.startTime = { $gte: startDate, $lt: endDate };
     }
 
     const sessions = await StudySession.find(query)

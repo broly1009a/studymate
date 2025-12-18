@@ -149,8 +149,8 @@ export default function BlogPage() {
             {vi.blog.filters.featured}
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
-            {featuredPosts.map((post) => (
-              <Link key={post.id} href={`/blog/${post.id}`}>
+            {featuredPosts.map((post, index) => (
+              <Link key={post.id || post._id || index} href={`/blog/${post.id || post._id}`}>
                 <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden">
                   <div className="relative h-48">
                     <Image
@@ -216,8 +216,8 @@ export default function BlogPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{vi.blog.filters.all}</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.name}>
+                {categories.map((category, index) => (
+                  <SelectItem key={category.id || category._id || index} value={category.name}>
                     {category.name} ({category.postCount})
                   </SelectItem>
                 ))}
@@ -252,8 +252,8 @@ export default function BlogPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {sortedPosts.map((post) => (
-            <Link key={post.id} href={`/blog/${post.id}`}>
+          {sortedPosts.map((post, index) => (
+            <Link key={post.id || post._id || index} href={`/blog/${post.id || post._id}`}>
               <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden">
                 <div className="relative h-48">
                   <Image

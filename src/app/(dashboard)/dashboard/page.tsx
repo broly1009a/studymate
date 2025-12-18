@@ -1,6 +1,6 @@
 'use client';
 
-// import { useAuth } from '@/hooks/use-auth'; // ❌ Không dùng nên comment lại
+import { useAuth } from '@/hooks/use-auth';
 import { FindPartnerCTA } from '@/components/dashboard/find-partner-cta';
 import { StudyStreakCard } from '@/components/dashboard/study-streak-card';
 import { QuickStats } from '@/components/dashboard/quick-stats';
@@ -9,197 +9,141 @@ import { RecentActivity } from '@/components/dashboard/recent-activity';
 import { AIRecommendations } from '@/components/dashboard/ai-recommendations';
 import { UpcomingEvents } from '@/components/dashboard/upcoming-events';
 import type { DashboardData } from '@/types/dashboard';
-
-// Mock dashboard data
-const mockDashboardData: DashboardData = {
-  welcomeMessage: 'Welcome back',
-  studyStreak: {
-    current: 7,
-    longest: 15,
-    lastStudyDate: new Date().toISOString(),
-  },
-  todaySchedule: [
-    {
-      id: '1',
-      title: 'Mathematics Study Session',
-      type: 'study-session',
-      startTime: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
-      endTime: new Date(Date.now() + 1000 * 60 * 60 * 3).toISOString(),
-      subject: 'Calculus',
-      participants: ['Duy Anh'],
-    },
-    {
-      id: '2',
-      title: 'Physics Group Meeting',
-      type: 'group-meeting',
-      startTime: new Date(Date.now() + 1000 * 60 * 60 * 5).toISOString(),
-      endTime: new Date(Date.now() + 1000 * 60 * 60 * 6).toISOString(),
-      subject: 'Quantum Mechanics',
-      participants: ['Alice', 'Bob', 'Charlie'],
-    },
-  ],
-  quickStats: {
-    todayStudyTime: 45,
-    weeklyStudyTime: 320,
-    questionsAnswered: 12,
-    upcomingDeadlines: 3,
-  },
-  recentActivities: [
-    {
-      id: '1',
-      type: 'answer',
-      title: 'Answered a question',
-      description: 'You answered "How to solve quadratic equations?"',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    },
-    {
-      id: '2',
-      type: 'match',
-      title: 'New study partner match',
-      description: 'You matched with Sarah for Computer Science',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    },
-    {
-      id: '3',
-      type: 'group',
-      title: 'Joined a study group',
-      description: 'You joined "Advanced Mathematics Study Group"',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    },
-  ],
-  studyGoals: [
-    {
-      id: '1',
-      title: 'Complete 50 study hours this month',
-      description: 'Track your monthly study time',
-      target: 50,
-      current: 32,
-      unit: 'hours',
-      deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString(),
-      progress: 64,
-    },
-    {
-      id: '2',
-      title: 'Answer 30 questions',
-      description: 'Help others by answering questions',
-      target: 30,
-      current: 18,
-      unit: 'questions',
-      deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString(),
-      progress: 60,
-    },
-  ],
-  aiRecommendations: [
-    {
-      id: '1',
-      type: 'study-partner',
-      title: 'Connect with Alex Johnson',
-      description:
-        'Alex is also studying Computer Science and has similar learning preferences',
-      reason: 'Based on your interests',
-      actionUrl: '/matches/alex-johnson',
-    },
-    {
-      id: '2',
-      type: 'question',
-      title: 'Popular question in your field',
-      description: 'How to implement binary search trees?',
-      reason: 'Trending in Computer Science',
-      actionUrl: '/questions/123',
-    },
-    {
-      id: '3',
-      type: 'group',
-      title: 'Join "Web Development Bootcamp"',
-      description:
-        'Active group with 45 members learning web development',
-      reason: 'Matches your interests',
-      actionUrl: '/groups/web-dev-bootcamp',
-    },
-  ],
-  upcomingEvents: [
-    {
-      id: '1',
-      title: 'Midterm Exam - Calculus',
-      type: 'exam',
-      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
-      time: '09:00 AM',
-      location: 'Room 301',
-    },
-    {
-      id: '2',
-      title: 'Coding Competition',
-      type: 'competition',
-      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
-      time: '02:00 PM',
-      location: 'Online',
-      participants: 150,
-    },
-    {
-      id: '3',
-      title: 'Project Submission Deadline',
-      type: 'deadline',
-      date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-      time: '11:59 PM',
-    },
-  ],
-};
-
-// Mock Tinder Events for carousel
-const mockTinderEvents = [
-  {
-    id: '1',
-    title: 'Cuộc thi Lập trình ACM ICPC 2025',
-    description: 'Cuộc thi lập trình quốc tế dành cho sinh viên',
-    type: 'competition' as const,
-    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(),
-    time: '09:00 - 17:00',
-    location: 'HCMUT',
-    participants: 245,
-    maxParticipants: 300,
-    image: '/cuocthi.jpg',
-    organizer: 'ACM ICPC Vietnam',
-    tags: ['Lập trình', 'Thuật toán', 'Quốc tế'],
-  },
-  {
-    id: '2',
-    title: 'Hackathon AI & Machine Learning',
-    description: 'Xây dựng giải pháp AI cho bài toán thực tế',
-    type: 'competition' as const,
-    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(),
-    time: '08:00 - 20:00',
-    location: 'Online',
-    participants: 180,
-    maxParticipants: 200,
-    image: '/cuocthi.jpg',
-    organizer: 'Google Developer Vietnam',
-    tags: ['AI', 'Machine Learning', 'Hackathon'],
-  },
-  {
-    id: '3',
-    title: 'Cuộc thi Thiết kế UI/UX 2025',
-    description: 'Thi thiết kế giao diện người dùng sáng tạo',
-    type: 'competition' as const,
-    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 21).toISOString(),
-    time: '10:00 - 18:00',
-    location: 'UIT',
-    participants: 120,
-    maxParticipants: 150,
-    image: '/cuocthi.jpg',
-    organizer: 'Design Club UIT',
-    tags: ['UI/UX', 'Design', 'Creative'],
-  },
-];
+import { useEffect, useState } from 'react';
 
 export default function DashboardPage() {
-  // const { user } = useAuth(); // ❌ Không cần dùng user, comment lại
+  const { user, isLoading: authLoading } = useAuth();
+
+  // States for dashboard data
+  const [studyStreak, setStudyStreak] = useState({ current: 0, longest: 0, lastStudyDate: '' });
+  const [todaySchedule, setTodaySchedule] = useState([]);
+  const [quickStats, setQuickStats] = useState({
+    todayStudyTime: 0,
+    weeklyStudyTime: 0,
+    questionsAnswered: 0,
+    upcomingDeadlines: 0,
+  });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [studyGoals, setStudyGoals] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [featuredEvents, setFeaturedEvents] = useState([]);
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user?.id) return;
+
+      setLoading(true);
+      try {
+        // Fetch study streak
+        const streakResponse = await fetch(`/api/study-streak?userId=${user.id}`);
+        if (streakResponse.ok) {
+          const streakData = await streakResponse.json();
+          if (streakData.success) {
+            setStudyStreak(streakData.data);
+          }
+        }
+
+        // Fetch recent activities
+        const activitiesResponse = await fetch(`/api/activities?userId=${user.id}&limit=3`);
+        if (activitiesResponse.ok) {
+          const activitiesData = await activitiesResponse.json();
+          setRecentActivities(activitiesData.data || []);
+        }
+
+        // Fetch study goals
+        const goalsResponse = await fetch(`/api/goals?userId=${user.id}`);
+        if (goalsResponse.ok) {
+          const goalsData = await goalsResponse.json();
+          setStudyGoals(goalsData.data || []);
+        }
+
+        // Fetch upcoming events
+        const eventsResponse = await fetch('/api/events?limit=5');
+        if (eventsResponse.ok) {
+          const eventsData = await eventsResponse.json();
+          if (eventsData.success) {
+            setUpcomingEvents(eventsData.data);
+          }
+        }
+
+        // Fetch featured events (Tinder-like carousel)
+        const featuredResponse = await fetch('/api/featured-events?limit=3&sortBy=trending');
+        if (featuredResponse.ok) {
+          const featuredData = await featuredResponse.json();
+          if (featuredData.success) {
+            setFeaturedEvents(featuredData.data);
+          }
+        }
+
+        // Fetch AI Recommendations
+        const recommendationsResponse = await fetch(`/api/recommendations?userId=${user.id}&limit=3`);
+        if (recommendationsResponse.ok) {
+          const recommendationsData = await recommendationsResponse.json();
+          if (recommendationsData.success) {
+            setAiRecommendations(recommendationsData.data);
+          }
+        }
+
+        // Fetch today schedule (study sessions)
+        const scheduleResponse = await fetch(`/api/study-sessions?userId=${user.id}&date=today&status=scheduled`);
+        if (scheduleResponse.ok) {
+          const scheduleData = await scheduleResponse.json();
+          if (scheduleData.success) {
+            setTodaySchedule(scheduleData.data);
+          }
+        }
+
+        // Calculate quick stats (this could be from a dedicated API)
+        // For now, use mock calculation
+        setQuickStats({
+          todayStudyTime: 45, // TODO: Calculate from study sessions
+          weeklyStudyTime: 320, // TODO: Calculate from study records
+          questionsAnswered: 12, // TODO: Calculate from activities
+          upcomingDeadlines: studyGoals.length, // Count active goals
+        });
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchDashboardData();
+    }
+  }, [user?.id]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00a7c1] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Please log in to view your dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Chào mừng trở lại, <span className="text-[#00a7c1]">Duy Anh</span>! 👋
+          Chào mừng trở lại, <span className="text-[#00a7c1]">{user.fullName || user.username}</span>! 👋
         </h1>
         <p className="text-muted-foreground mt-1">
           Đây là những gì đang diễn ra với việc học của bạn hôm nay
@@ -213,20 +157,20 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT COLUMN - Quick Stats & Study Streak */}
         <div className="space-y-6">
-          <QuickStats stats={mockDashboardData.quickStats} />
-          <StudyStreakCard streak={mockDashboardData.studyStreak} />
+          <QuickStats stats={quickStats} />
+          <StudyStreakCard streak={studyStreak} />
         </div>
 
         {/* MIDDLE COLUMN (MIDLANE) - Events & Competitions */}
         <div className="space-y-6">
-          <UpcomingEvents events={mockDashboardData.upcomingEvents} />
-          <TinderEvents events={mockTinderEvents} />
+          <UpcomingEvents events={upcomingEvents} />
+          <TinderEvents events={featuredEvents} />
         </div>
 
         {/* RIGHT COLUMN - Recent Activity & AI Recommendations */}
         <div className="space-y-6">
-          <RecentActivity activities={mockDashboardData.recentActivities} />
-          <AIRecommendations recommendations={mockDashboardData.aiRecommendations} />
+          <RecentActivity activities={recentActivities} />
+          <AIRecommendations recommendations={aiRecommendations} />
         </div>
       </div>
     </div>
