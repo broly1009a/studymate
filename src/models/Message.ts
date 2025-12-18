@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import './User'; // Ensure User model is registered
 
 export interface IMessage extends Document {
   conversationId: mongoose.Types.ObjectId;
