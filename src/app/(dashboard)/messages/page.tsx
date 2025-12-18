@@ -62,7 +62,8 @@ export default function MessagesPage() {
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { joinConversation, leaveConversation, onNewMessage } = useSocket();
+  const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { joinConversation, leaveConversation, onNewMessage, emitMessagesRead, onMessagesRead } = useSocket();
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -102,11 +103,11 @@ export default function MessagesPage() {
     }
   }, []);
 
-  // Mark messages as read
+  // Mark messages as read (debounced to avoid excessive API calls)
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
 
-    // Update UI immediately
+    // Update UI immediately for better UX
     setConversations((prev) =>
       prev.map((conv) =>
         conv._id === conversationId
@@ -115,26 +116,36 @@ export default function MessagesPage() {
       )
     );
 
-    try {
-      await fetch(`/api/conversations/${conversationId}/read`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-      // Revert UI change if API fails
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv._id === conversationId
-            ? { ...conv, unreadCounts: { ...conv.unreadCounts, [user.id]: (conv.unreadCounts[user.id] || 0) + 1 } }
-            : conv
-        )
-      );
+    // Also mark messages as read in UI immediately
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.senderId !== user.id ? { ...msg, read: true } : msg
+      )
+    );
+
+    // Emit socket event immediately so other user sees "Đã xem" in real-time
+    emitMessagesRead(conversationId, user.id);
+
+    // Debounce API call - only call after 500ms of no new calls
+    if (markReadTimeoutRef.current) {
+      clearTimeout(markReadTimeoutRef.current);
     }
-  }, [user?.id]);
+
+    markReadTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Call mark-read API to update messages in database
+        await fetch(`/api/conversations/${conversationId}/mark-read`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+      } catch (error) {
+        console.error('Failed to mark as read:', error);
+      }
+    }, 500);
+  }, [user?.id, emitMessagesRead]);
 
   // Handle new message from socket
   const handleNewMessage = useCallback((data: any) => {
@@ -154,13 +165,13 @@ export default function MessagesPage() {
     setConversations((prev) =>
       prev.map((conv) => {
         if (conv._id === data.conversation._id) {
-          // If this is the current conversation and message is from other user, set unread to 0
-          if (isCurrentConversation && data.message.senderId !== user?.id) {
+          // If this is the current conversation, always keep unread count at 0
+          if (isCurrentConversation) {
             return {
               ...conv,
               lastMessage: data.conversation.lastMessage,
               lastMessageTime: data.conversation.lastMessageTime,
-              unreadCounts: { ...data.conversation.unreadCounts, [user?.id || '']: 0 }
+              unreadCounts: { ...conv.unreadCounts, [user?.id || '']: 0 } // Always 0 when viewing
             };
           }
           // Otherwise, use the unread count from server
@@ -180,6 +191,23 @@ export default function MessagesPage() {
     const unsubscribe = onNewMessage(handleNewMessage);
     return unsubscribe;
   }, [onNewMessage, handleNewMessage]);
+
+  // Listen for messages read events
+  useEffect(() => {
+    const handleMessagesRead = (data: { conversationId: string; userId: string }) => {
+      // Update messages to read: true for current conversation
+      if (selectedConversation?._id === data.conversationId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.senderId === user?.id ? { ...msg, read: true } : msg
+          )
+        );
+      }
+    };
+
+    const unsubscribe = onMessagesRead(handleMessagesRead);
+    return unsubscribe;
+  }, [onMessagesRead, selectedConversation?._id, user?.id]);
 
   // Load initial data and join conversations once
   useEffect(() => {
@@ -206,11 +234,18 @@ export default function MessagesPage() {
   useEffect(() => {
     if (selectedConversation && selectedConversation._id !== lastConversationIdRef.current) {
       lastConversationIdRef.current = selectedConversation._id;
+      
       fetchMessages(selectedConversation._id);
       markAsRead(selectedConversation._id);
-      // No need to join here since we already joined all conversations on load
     }
-  }, [selectedConversation?._id, fetchMessages, markAsRead]);
+
+    // Cleanup on unmount
+    return () => {
+      if (markReadTimeoutRef.current) {
+        clearTimeout(markReadTimeoutRef.current);
+      }
+    };
+  }, [selectedConversation?._id, fetchMessages, markAsRead, user?.id]);
 
   // Auto scroll when messages change
   useEffect(() => {

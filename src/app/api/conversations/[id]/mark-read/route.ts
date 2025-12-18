@@ -4,7 +4,8 @@ import Message from '@/models/Message';
 import Conversation from '@/models/Conversation';
 import mongoose from 'mongoose';
 
-// PUT - Mark all messages in conversation as read
+// PUT - Mark all messages in conversation as read (heavyweight operation)
+// Use this when need to update message read status, e.g., when leaving conversation
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -26,46 +27,66 @@ export async function PUT(
       );
     }
 
-    const conversation = await Conversation.findById(id);
-
-    if (!conversation) {
+    if (!userId) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Conversation not found',
+          message: 'userId is required',
         },
-        { status: 404 }
+        { status: 400 }
       );
     }
 
-    // Mark all unread messages as read
-    await Message.updateMany(
-      {
-        conversationId: id,
-        read: false,
-      },
-      {
-        $set: {
-          read: true,
-          readAt: new Date(),
+    // Use session for atomic operations
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Mark all unread messages from others as read
+      const updateResult = await Message.updateMany(
+        {
+          conversationId: new mongoose.Types.ObjectId(id),
+          senderId: { $ne: new mongoose.Types.ObjectId(userId) },
+          read: false,
         },
-      }
-    );
+        {
+          $set: {
+            read: true,
+            readAt: new Date(),
+          },
+        },
+        { session }
+      );
 
-    // Reset unread count for this user
-    if (userId) {
-      conversation.unreadCounts.set(userId, 0);
-      await conversation.save();
+      // Reset unread count
+      await Conversation.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            [`unreadCounts.${userId}`]: 0
+          }
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'All messages marked as read',
+          updatedCount: updateResult.modifiedCount,
+        },
+        { status: 200 }
+      );
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'All messages marked as read',
-      },
-      { status: 200 }
-    );
   } catch (error: any) {
+    console.error('Error marking messages as read:', error);
     return NextResponse.json(
       {
         success: false,

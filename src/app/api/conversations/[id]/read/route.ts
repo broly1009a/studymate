@@ -3,7 +3,8 @@ import { connectDB } from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import mongoose from 'mongoose';
 
-// POST - Mark conversation as read for user
+// POST - Quick mark conversation as read (only update unread count, not messages)
+// This is lightweight and called frequently when user views conversation
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
@@ -11,8 +12,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const body = await request.json();
     const { userId } = body;
-
-    console.log('Mark as read - Conversation ID:', id, 'User ID:', userId);
 
     if (!userId) {
       return NextResponse.json(
@@ -24,8 +23,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    const conversation = await Conversation.findById(id);
-    console.log('Found conversation:', conversation);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid conversation ID',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Only update unread count - lightweight operation
+    const conversation = await Conversation.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          [`unreadCounts.${userId}`]: 0
+        }
+      },
+      { new: true }
+    );
 
     if (!conversation) {
       return NextResponse.json(
@@ -37,15 +54,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Ensure unreadCounts is a Map
-    if (!(conversation.unreadCounts instanceof Map)) {
-      conversation.unreadCounts = new Map(Object.entries(conversation.unreadCounts || {}));
-    }
-
-    // Reset unread count for this user
-    conversation.unreadCounts.set(userId, 0);
-    await conversation.save();
-
     return NextResponse.json(
       {
         success: true,
@@ -54,6 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { status: 200 }
     );
   } catch (error: any) {
+    console.error('Error marking conversation as read:', error);
     return NextResponse.json(
       {
         success: false,

@@ -56,6 +56,17 @@ export const useSocket = () => {
     };
   };
 
+  const emitMessagesRead = (conversationId: string, userId: string) => {
+    socket?.emit('messages-read', { conversationId, userId });
+  };
+
+  const onMessagesRead = (callback: (data: any) => void): (() => void) => {
+    socket?.on('messages-marked-read', callback);
+    return () => {
+      socket?.off('messages-marked-read', callback);
+    };
+  };
+
   return {
     socket: socketRef.current,
     joinConversation,
@@ -65,5 +76,7 @@ export const useSocket = () => {
     onNewMessage,
     onUserTyping,
     onUserStopTyping,
+    emitMessagesRead,
+    onMessagesRead,
   };
 };

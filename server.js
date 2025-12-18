@@ -52,6 +52,14 @@ app.prepare().then(() => {
       });
     });
 
+    // Handle messages read notification
+    socket.on('messages-read', (data) => {
+      socket.to(data.conversationId).emit('messages-marked-read', {
+        conversationId: data.conversationId,
+        userId: data.userId
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
     });
