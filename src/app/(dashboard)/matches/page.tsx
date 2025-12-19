@@ -193,6 +193,7 @@ export default function FindPartnersPage() {
               : 'bg-background border-border hover:bg-muted'
           }`}
           aria-expanded={isDropdownOpen}
+          suppressHydrationWarning
         >
           <span>Danh mục</span>
           <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />

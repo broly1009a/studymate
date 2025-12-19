@@ -7,12 +7,13 @@ import mongoose from 'mongoose';
 // GET - Fetch teams for a competition with filtering
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const competitionId = params.id;
+    const { id } = await params;
+    const competitionId = id;
 
     // Verify competition exists
     const competition = await Competition.findById(competitionId);
@@ -75,12 +76,13 @@ export async function GET(
 // POST - Create a new team for competition
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const competitionId = params.id;
+    const { id } = await params;
+    const competitionId = id;
     const body = await request.json();
     const { name, description, maxMembers, skillsNeeded, leaderUserId, leaderUserName, leaderUserAvatar } = body;
 

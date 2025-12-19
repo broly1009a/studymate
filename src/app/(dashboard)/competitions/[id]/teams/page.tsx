@@ -18,6 +18,7 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
     const fetchTeamsData = async () => {
@@ -52,15 +53,19 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const filteredTeams = teams.filter(team =>
-    team.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTeams = teams.filter(team => {
+    const matchesSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || 
+                         (filterStatus === 'recruiting' && team.lookingForMembers) ||
+                         (filterStatus === 'active' && team.status === 'active');
+    return matchesSearch && matchesStatus;
+  });
 
   const stats = {
     totalTeams: teams.length,
     activeTeams: teams.filter(t => t.status === 'active').length,
-    recruitingTeams: teams.filter(t => t.status === 'recruiting').length,
-    totalParticipants: teams.reduce((sum, t) => sum + t.members.length, 0),
+    recruitingTeams: teams.filter(t => t.lookingForMembers).length,
+    totalParticipants: teams.reduce((sum, t) => sum + (t.members?.length || 0), 0),
   };
 
   return (
@@ -75,12 +80,14 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
             </Button>
           </Link>
           <h1 className="text-3xl font-bold">Danh sách đội thi</h1>
-          <p className="text-muted-foreground">ACM ICPC Programming Contest 2025</p>
+          <p className="text-muted-foreground">{competition?.title || 'Cuộc thi'}</p>
         </div>
-        <Button>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Tạo đội mới
-        </Button>
+        <Link href={`/competitions/${id}/teams/new`}>
+          <Button>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Tạo đội mới
+          </Button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -170,13 +177,13 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
       ) : (
         <div className="space-y-4">
           {filteredTeams.map((team) => (
-            <Card key={team.id} className="hover:shadow-md transition-shadow">
+            <Card key={team._id || team.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4">
                     {/* Rank Badge */}
                     <div className="flex flex-col items-center">
-                      {team.rank <= 3 ? (
+                      {team.rank && team.rank <= 3 ? (
                         <div className={`
                           w-12 h-12 rounded-full flex items-center justify-center
                           ${team.rank === 1 ? 'bg-yellow-100 text-yellow-700' : ''}
@@ -187,7 +194,7 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
                         </div>
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                          <span className="text-lg font-bold">#{team.rank}</span>
+                          <span className="text-lg font-bold">#{team.rank || '-'}</span>
                         </div>
                       )}
                     </div>
@@ -196,34 +203,34 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-xl font-bold">{team.name}</h3>
-                        {team.status === 'recruiting' && (
+                        {team.lookingForMembers && (
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
                             Đang tuyển
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{team.university}</p>
+                      <p className="text-sm text-muted-foreground mb-3">{team.university || 'Chưa cập nhật'}</p>
 
                       {/* Members */}
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex -space-x-2">
-                          {team.members.map((member) => (
-                            <Avatar key={member.id} className="border-2 border-background">
-                              <AvatarImage src={member.avatar} alt={member.name} />
-                              <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                          {team.members?.map((member: any) => (
+                            <Avatar key={member.userId || member._id} className="border-2 border-background">
+                              <AvatarImage src={member.userAvatar || member.avatar} alt={member.userName || member.name} />
+                              <AvatarFallback>{(member.userName || member.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
                           ))}
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {team.members.length} thành viên
+                          {team.members?.length || 0} thành viên
                         </span>
                       </div>
 
                       {/* Member Names */}
                       <div className="flex flex-wrap gap-2">
-                        {team.members.map((member) => (
-                          <div key={member.id} className="flex items-center gap-1 text-sm">
-                            <span>{member.name}</span>
+                        {team.members?.map((member: any) => (
+                          <div key={member.userId || member._id} className="flex items-center gap-1 text-sm">
+                            <span>{member.userName || member.name || 'Unknown'}</span>
                             {member.role === 'leader' && (
                               <Crown className="h-3 w-3 text-yellow-600" />
                             )}
@@ -235,18 +242,20 @@ export default function CompetitionTeamsPage({ params }: { params: Promise<{ id:
 
                   {/* Score */}
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-primary">{team.score}</div>
+                    <div className="text-2xl font-bold text-primary">{team.score || 0}</div>
                     <div className="text-sm text-muted-foreground">điểm</div>
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-4 border-t">
-                  <Button variant="outline" size="sm">
-                    Xem chi tiết
-                  </Button>
-                  {team.status === 'recruiting' && (
-                    <Button size="sm">
+                  <Link href={`/teams/${team._id}`}>
+                    <Button variant="outline" size="sm">
+                      Xem chi tiết
+                    </Button>
+                  </Link>
+                  {team.lookingForMembers && (
+                    <Button size="sm" onClick={() => toast.info('Tính năng đang phát triển')}>
                       <UserPlus className="h-4 w-4 mr-2" />
                       Tham gia đội
                     </Button>

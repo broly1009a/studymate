@@ -11,11 +11,12 @@ import { ArrowLeft, X, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function CreateTeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [competition, setCompetition] = useState<any>(null);
@@ -59,6 +60,20 @@ export default function CreateTeamPage({ params }: { params: Promise<{ id: strin
     return <div className="w-full">Không tìm thấy cuộc thi</div>;
   }
 
+  if (!user) {
+    return (
+      <div className="w-full">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-2">Yêu cầu đăng nhập</h1>
+          <p className="text-muted-foreground mb-4">Bạn cần đăng nhập để tạo đội.</p>
+          <Link href="/login">
+            <Button>Đăng nhập</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const handleAddSkill = () => {
     if (skillInput.trim() && !formData.skillsNeeded.includes(skillInput.trim())) {
       setFormData({
@@ -79,6 +94,11 @@ export default function CreateTeamPage({ params }: { params: Promise<{ id: strin
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để tạo đội');
+      return;
+    }
+
     if (!formData.name || !formData.description) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
@@ -89,7 +109,15 @@ export default function CreateTeamPage({ params }: { params: Promise<{ id: strin
       const response = await fetch(`/api/competitions/${id}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          maxMembers: competition.teamSize?.max || 5,
+          skillsNeeded: formData.skillsNeeded,
+          leaderUserId: user.id,
+          leaderUserName: user.fullName || user.username,
+          leaderUserAvatar: user.avatar,
+        }),
       });
 
       const data = await response.json();
@@ -182,6 +210,9 @@ export default function CreateTeamPage({ params }: { params: Promise<{ id: strin
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
                 Kích thước đội cho cuộc thi này: {competition.teamSize?.min || 1}-{competition.teamSize?.max || 5} thành viên
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Bạn sẽ là đội trưởng của đội này
               </p>
             </div>
 

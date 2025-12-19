@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Question from '@/models/Question';
+import User from '@/models/User';
+import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await connectDB();
+
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
+    }
 
     const question = await Question.findByIdAndUpdate(
       params.id,
@@ -25,6 +31,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await connectDB();
+
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
+    }
 
     const body = await req.json();
     const { title, content, tags, status } = body;
@@ -55,6 +65,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     await connectDB();
+
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
+    }
 
     const deletedQuestion = await Question.findByIdAndDelete(params.id);
 

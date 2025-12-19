@@ -1,29 +1,109 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { getSubjects } from '@/lib/mock-data/sessions';
-import { Plus, BookOpen, Clock, TrendingUp, Target } from 'lucide-react';
+import { Plus, BookOpen, Clock, TrendingUp, Target, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+
+interface Subject {
+  _id: string;
+  userId: string;
+  name: string;
+  color: string;
+  icon: string;
+  totalHours: number;
+  sessionsCount: number;
+  averageSessionLength: number;
+  lastStudied?: string;
+  topics: string[];
+  goalHours: number;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function SubjectsPage() {
-  const subjects = getSubjects();
+  const { user } = useAuth();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: '', icon: '', color: '#3b82f6' });
 
-  const handleAddSubject = () => {
-    if (!newSubject.name) {
-      toast.error('Please enter a subject name');
+  // Fetch subjects from API
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (!user?.id) return;
+
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/subjects?userId=${user.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch subjects');
+        }
+        const data = await response.json();
+        setSubjects(data.data || []);
+      } catch (error) {
+        console.error('Error fetching subjects:', error);
+        toast.error('Không thể tải danh sách môn học');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubjects();
+  }, [user?.id]);
+
+  const handleAddSubject = async () => {
+    if (!user?.id) {
+      toast.error('Vui lòng đăng nhập để thêm môn học');
       return;
     }
-    toast.success('Subject added successfully!');
-    setIsDialogOpen(false);
-    setNewSubject({ name: '', icon: '', color: '#3b82f6' });
+
+    if (!newSubject.name.trim()) {
+      toast.error('Vui lòng nhập tên môn học');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('/api/subjects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          name: newSubject.name.trim(),
+          color: newSubject.color,
+          icon: newSubject.icon || '📚',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create subject');
+      }
+
+      const createdSubject = await response.json();
+
+      // Add to local state
+      setSubjects(prev => [createdSubject, ...prev]);
+
+      toast.success('Thêm môn học thành công!');
+      setIsDialogOpen(false);
+      setNewSubject({ name: '', icon: '', color: '#3b82f6' });
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      toast.error('Không thể thêm môn học. Vui lòng thử lại.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const totalHours = subjects.reduce((sum, s) => sum + (s.totalHours || 0), 0);
@@ -55,6 +135,7 @@ export default function SubjectsPage() {
                   placeholder="e.g., Mathematics"
                   value={newSubject.name}
                   onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
               <div>
@@ -63,6 +144,7 @@ export default function SubjectsPage() {
                   placeholder="e.g., 📐"
                   value={newSubject.icon}
                   onChange={(e) => setNewSubject({ ...newSubject, icon: e.target.value })}
+                  disabled={isSubmitting}
                 />
               </div>
               <div>
@@ -73,16 +155,25 @@ export default function SubjectsPage() {
                     value={newSubject.color}
                     onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
                     className="w-20"
+                    disabled={isSubmitting}
                   />
                   <Input
                     value={newSubject.color}
                     onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
                     placeholder="#3b82f6"
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
-              <Button onClick={handleAddSubject} className="w-full">
-                Add Subject
+              <Button onClick={handleAddSubject} className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Subject'
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -118,92 +209,113 @@ export default function SubjectsPage() {
       </div>
 
       {/* Subjects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {subjects.map((subject) => {
-          const progress = ((subject.totalHours || 0) / (subject.goalHours || 1)) * 100;
-          return (
-            <Link key={subject.id} href={`/subjects/${subject.id}`}>
-              <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                      style={{ backgroundColor: subject.color + '20' }}
-                    >
-                      {subject.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg truncate">{subject.name}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {subject.sessionsCount} sessions
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Progress */}
-                  <div>
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Progress</span>
-                      <span className="font-medium">
-                        {subject.totalHours}h / {subject.goalHours}h
-                      </span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Loading subjects...</span>
+        </div>
+      ) : subjects.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No subjects yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Create your first subject to start tracking your study progress
+            </p>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Subject
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {subjects.map((subject) => {
+            const progress = ((subject.totalHours || 0) / (subject.goalHours || 1)) * 100;
+            return (
+              <Link key={subject._id} href={`/subjects/${subject._id}`}>
+                <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-3 mb-2">
                       <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(progress, 100)}%`,
-                          backgroundColor: subject.color,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-xs text-muted-foreground">Avg Session</div>
-                        <div className="font-medium">{subject.averageSessionLength} min</div>
+                        className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                        style={{ backgroundColor: subject.color + '20' }}
+                      >
+                        {subject.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{subject.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {subject.sessionsCount} sessions
+                        </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-xs text-muted-foreground">Goal</div>
-                        <div className="font-medium">{subject.goalHours}h</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Topics */}
-                  {subject.topics && subject.topics.length > 0 && (
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Progress */}
                     <div>
-                      <div className="text-xs text-muted-foreground mb-2">Topics</div>
-                      <div className="flex flex-wrap gap-1">
-                        {subject.topics.slice(0, 3).map((topic) => (
-                          <span
-                            key={topic}
-                            className="text-xs px-2 py-1 rounded-md"
-                            style={{
-                              backgroundColor: subject.color + '20',
-                              color: subject.color,
-                            }}
-                          >
-                            {topic}
-                          </span>
-                        ))}
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">
+                          {subject.totalHours}h / {subject.goalHours}h
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(progress, 100)}%`,
+                            backgroundColor: subject.color,
+                          }}
+                        />
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-xs text-muted-foreground">Avg Session</div>
+                          <div className="font-medium">{subject.averageSessionLength} min</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="text-xs text-muted-foreground">Goal</div>
+                          <div className="font-medium">{subject.goalHours}h</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Topics */}
+                    {subject.topics && subject.topics.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-2">Topics</div>
+                        <div className="flex flex-wrap gap-1">
+                          {subject.topics.slice(0, 3).map((topic) => (
+                            <span
+                              key={topic}
+                              className="text-xs px-2 py-1 rounded-md"
+                              style={{
+                                backgroundColor: subject.color + '20',
+                                color: subject.color,
+                              }}
+                            >
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -196,7 +196,7 @@ export default function GroupsPage() {
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger>
+              <SelectTrigger suppressHydrationWarning>
                 <SelectValue placeholder="Tất cả danh mục" />
               </SelectTrigger>
               <SelectContent>
@@ -213,7 +213,7 @@ export default function GroupsPage() {
               </SelectContent>
             </Select>
             <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-              <SelectTrigger>
+              <SelectTrigger suppressHydrationWarning>
                 <SelectValue placeholder="Tất cả nhóm" />
               </SelectTrigger>
               <SelectContent>

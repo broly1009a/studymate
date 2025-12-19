@@ -126,12 +126,22 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
 
       {/* Header */}
       <div className="relative h-64 rounded-lg overflow-hidden mb-6">
-        <Image
-          src={competition.banner}
-          alt={competition.title}
-          fill
-          className="object-cover"
-        />
+        {competition.banner ? (
+          <Image
+            src={competition.banner}
+            alt={competition.title}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="text-center text-white">
+              <Trophy className="h-16 w-16 mx-auto mb-4 opacity-80" />
+              <h2 className="text-2xl font-bold">{competition.title}</h2>
+              <p className="text-lg opacity-90">{competition.organizer}</p>
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
         <div className="absolute bottom-6 left-6 right-6">
           <div className="flex items-start justify-between">
@@ -257,7 +267,7 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Đội nhóm ({teams.length})</CardTitle>
-                    <Link href={`/competitions/${competition.id}/teams/new`}>
+                    <Link href={`/competitions/${competition._id}/teams/new`}>
                       <Button size="sm">
                         <UserPlus className="h-4 w-4 mr-2" />
                         Tạo đội
@@ -273,7 +283,7 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
                   ) : (
                     <div className="space-y-3">
                       {teams.map((team) => (
-                        <Link key={team.id} href={`/teams/${team.id}`}>
+                        <Link key={team._id} href={`/teams/${team._id}`}>
                           <div className="p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -342,7 +352,7 @@ export default function CompetitionDetailPage({ params }: { params: Promise<{ id
                 </div>
               )}
               {competition.status === 'completed' && (
-                <Link href={`/competitions/${competition.id}/results`}>
+                <Link href={`/competitions/${competition._id}/results`}>
                   <Button className="w-full">Xem kết quả</Button>
                 </Link>
               )}

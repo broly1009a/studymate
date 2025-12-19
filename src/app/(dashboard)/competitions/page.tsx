@@ -208,7 +208,7 @@ export default function CompetitionsPage() {
               </Card>
             ) : (
               competitions.map((competition, index) => (
-                <Link key={competition.id || index} href={`/competitions/${competition.id}`}>
+                <Link key={competition._id || index} href={`/competitions/${competition._id}`}>
                   <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
                     <div className="relative h-40">
                       {competition.banner ? (

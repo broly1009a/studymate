@@ -99,12 +99,12 @@ export default function ForumPage() {
 
         if (statsRes.ok) {
           const statsData = await statsRes.json();
-          setStats(statsData);
+          setStats(statsData.data);
         }
 
         if (tagsRes.ok) {
           const tagsData = await tagsRes.json();
-          setPopularTags(tagsData.tags || []);
+          setPopularTags(tagsData.data || []);
         }
       } catch (error: any) {
         toast.error('Không thể tải dữ liệu diễn đàn');
@@ -191,7 +191,7 @@ export default function ForumPage() {
                   </div>
                 </div>
                 <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger suppressHydrationWarning>
                     <SelectValue placeholder="Tất cả môn học" />
                   </SelectTrigger>
                   <SelectContent>
@@ -208,7 +208,7 @@ export default function ForumPage() {
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger suppressHydrationWarning>
                     <SelectValue placeholder="Tất cả trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
