@@ -36,6 +36,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +52,12 @@ export default function GroupsPage() {
   // Fetch groups from API
   useEffect(() => {
     const fetchGroups = async () => {
+      const token = localStorage.getItem('studymate_auth_token');
+      if (!token) {
+        toast.error('Please login to view groups');
+        return;
+      }
+
       try {
         setLoading(true);
         const params = new URLSearchParams({
@@ -70,7 +77,11 @@ export default function GroupsPage() {
           params.append('visibility', visibilityFilter);
         }
 
-        const response = await fetch(`/api/groups?${params.toString()}`);
+        const response = await fetch(`/api/groups?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
 
         if (data.success) {
@@ -91,8 +102,17 @@ export default function GroupsPage() {
   // Fetch stats from API
   useEffect(() => {
     const fetchStats = async () => {
+      const token = localStorage.getItem('studymate_auth_token');
+      if (!token) {
+        return; // Don't show error for stats, it's not critical
+      }
+
       try {
-        const response = await fetch('/api/groups/stats');
+        const response = await fetch('/api/groups/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
 
         if (data.success) {
@@ -249,7 +269,7 @@ export default function GroupsPage() {
               </Card>
             ) : (
               groups.map((group) => (
-                <div key={group._id} onClick={() => toggleChat(group)}>
+                <Link key={group._id} href={`/groups/${group.slug}`}>
                   <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
                     <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5">
                       <Image
@@ -288,7 +308,7 @@ export default function GroupsPage() {
                       </div>
                     </CardHeader>
                   </Card>
-                </div>
+                </Link>
               ))
             )}
           </div>

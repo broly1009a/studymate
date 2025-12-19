@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Group from '@/models/Group';
-
+// Import User model to ensure it's registered before use
+import '@/models/User';
 // GET - Fetch all groups with filtering
 export async function GET(request: NextRequest) {
   try {

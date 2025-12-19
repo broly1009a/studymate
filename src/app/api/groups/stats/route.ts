@@ -1,26 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import StudyGroup from '@/models/StudyGroup';
-import GroupMember from '@/models/GroupMember';
+import Group from '@/models/Group';
 
-// GET - Get groups statistics
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const totalGroups = await StudyGroup.countDocuments({ isDeleted: false });
+    const totalGroups = await Group.countDocuments({ status: 'active' });
 
-    const publicGroups = await StudyGroup.countDocuments({
-      visibility: 'public',
-      isDeleted: false,
+    const publicGroups = await Group.countDocuments({
+      isPublic: true,
+      status: 'active',
     });
 
     // For now, myGroups will be 0 (requires userId context)
     const myGroups = 0;
 
-    const totalMembers = await GroupMember.countDocuments({
-      isActive: true,
-    });
+    // Calculate total members across all groups
+    const groups = await Group.find({ status: 'active' });
+    const totalMembers = groups.reduce((sum, group) => sum + group.members_count, 0);
 
     return NextResponse.json(
       {

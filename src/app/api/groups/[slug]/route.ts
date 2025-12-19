@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Group from '@/models/Group';
-import mongoose from 'mongoose';
+// Import User model to ensure it's registered before use
+import '@/models/User';
 
 // GET - Fetch single group
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectDB();
 
-    const { id } = await params;
+    const { slug } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid group ID',
-        },
-        { status: 400 }
-      );
-    }
-
-    const group = await Group.findById(id)
+    const group = await Group.findOne({ slug, status: 'active' })
       .populate('creatorId', 'fullName avatar email')
       .populate('admins', 'fullName avatar')
       .populate('members', 'fullName avatar');
@@ -59,22 +50,12 @@ export async function GET(
 // PUT - Update group
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectDB();
 
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid group ID',
-        },
-        { status: 400 }
-      );
-    }
+    const { slug } = await params;
 
     const body = await request.json();
     const {
@@ -89,7 +70,7 @@ export async function PUT(
       status,
     } = body;
 
-    const group = await Group.findById(id);
+    const group = await Group.findOne({ slug, status: 'active' });
 
     if (!group) {
       return NextResponse.json(
@@ -136,24 +117,14 @@ export async function PUT(
 // DELETE - Delete group
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     await connectDB();
 
-    const { id } = await params;
+    const { slug } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid group ID',
-        },
-        { status: 400 }
-      );
-    }
-
-    const group = await Group.findByIdAndDelete(id);
+    const group = await Group.findOneAndDelete({ slug, status: 'active' });
 
     if (!group) {
       return NextResponse.json(

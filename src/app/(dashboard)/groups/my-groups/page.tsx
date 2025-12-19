@@ -120,7 +120,7 @@ export default function MyGroupsPage() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <Link href={`/groups/${group.id}`}>
+                        <Link href={`/groups/${group.slug}`}>
                           <CardTitle className="text-xl hover:underline cursor-pointer">
                             {group.name}
                           </CardTitle>
@@ -137,7 +137,7 @@ export default function MyGroupsPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Link href={`/groups/${group.id}/chat`}>
+                        <Link href={`/groups/${group.slug}/chat`}>
                           <Button variant="outline" size="sm">
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Chat
@@ -146,7 +146,7 @@ export default function MyGroupsPage() {
                             )}
                           </Button>
                         </Link>
-                        <Link href={`/groups/${group.id}/calendar`}>
+                        <Link href={`/groups/${group.slug}/calendar`}>
                           <Button variant="outline" size="sm">
                             <Calendar className="h-4 w-4 mr-2" />
                             Events

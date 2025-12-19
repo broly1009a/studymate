@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import GroupMessage from '@/models/GroupMessage';
 
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
