@@ -5,11 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -21,6 +33,17 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    type: 'study_session',
+    isVirtual: false,
+    meetingLink: '',
+  });
 
   useEffect(() => {
     const fetchGroupData = async () => {
@@ -164,6 +187,60 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
     } catch (error) {
       console.error('Failed to leave group:', error);
       toast.error('Failed to leave group');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!group) return;
+
+    const token = localStorage.getItem('studymate_auth_token');
+    if (!token) {
+      toast.error('Please login to create events');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const response = await fetch(`/api/groups/${slug}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(eventForm),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Event created successfully!');
+        setShowCreateEvent(false);
+        setEventForm({
+          title: '',
+          description: '',
+          startTime: '',
+          endTime: '',
+          location: '',
+          type: 'study_session',
+          isVirtual: false,
+          meetingLink: '',
+        });
+        // Refresh events
+        const eventsRes = await fetch(`/api/groups/${slug}/events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const eventsData = await eventsRes.json();
+        if (eventsData.success) setEvents(eventsData.data);
+      } else {
+        toast.error(data.message || 'Failed to create event');
+      }
+    } catch (error) {
+      console.error('Failed to create event:', error);
+      toast.error('Failed to create event');
     } finally {
       setActionLoading(false);
     }
@@ -337,10 +414,125 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
         <TabsContent value="events" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming Events</CardTitle>
-              <CardDescription>
-                Events and activities in this group
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Upcoming Events</CardTitle>
+                  <CardDescription>
+                    Events and activities in this group
+                  </CardDescription>
+                </div>
+                {isMember && (
+                  <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Event
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle>Create New Event</DialogTitle>
+                        <DialogDescription>
+                          Create a new event for this group. All members will be notified.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="title">Event Title</Label>
+                          <Input
+                            id="title"
+                            value={eventForm.title}
+                            onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="Enter event title"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="description">Description</Label>
+                          <Textarea
+                            id="description"
+                            value={eventForm.description}
+                            onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Describe the event"
+                            rows={3}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="startTime">Start Time</Label>
+                            <Input
+                              id="startTime"
+                              type="datetime-local"
+                              value={eventForm.startTime}
+                              onChange={(e) => setEventForm(prev => ({ ...prev, startTime: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="endTime">End Time (Optional)</Label>
+                            <Input
+                              id="endTime"
+                              type="datetime-local"
+                              value={eventForm.endTime}
+                              onChange={(e) => setEventForm(prev => ({ ...prev, endTime: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="location">Location</Label>
+                          <Input
+                            id="location"
+                            value={eventForm.location}
+                            onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                            placeholder="Physical location or 'Online'"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="type">Event Type</Label>
+                          <Select value={eventForm.type} onValueChange={(value) => setEventForm(prev => ({ ...prev, type: value }))}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="study_session">Study Session</SelectItem>
+                              <SelectItem value="meeting">Meeting</SelectItem>
+                              <SelectItem value="workshop">Workshop</SelectItem>
+                              <SelectItem value="social">Social Event</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="isVirtual"
+                            checked={eventForm.isVirtual}
+                            onChange={(e) => setEventForm(prev => ({ ...prev, isVirtual: e.target.checked }))}
+                          />
+                          <Label htmlFor="isVirtual">This is a virtual event</Label>
+                        </div>
+                        {eventForm.isVirtual && (
+                          <div>
+                            <Label htmlFor="meetingLink">Meeting Link</Label>
+                            <Input
+                              id="meetingLink"
+                              value={eventForm.meetingLink}
+                              onChange={(e) => setEventForm(prev => ({ ...prev, meetingLink: e.target.value }))}
+                              placeholder="Zoom, Google Meet, etc."
+                            />
+                          </div>
+                        )}
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setShowCreateEvent(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleCreateEvent} disabled={actionLoading}>
+                            {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Create Event
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
