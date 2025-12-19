@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+console.log('Loading User model');
+
 export interface IUser extends Document {
   email: string;
   password: string;
@@ -35,7 +37,7 @@ const userSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
+      // match: [/^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
     },
     password: {
       type: String,
@@ -140,5 +142,8 @@ const userSchema = new Schema<IUser>(
 userSchema.index({ fullName: 'text', bio: 'text', major: 'text' });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+
+console.log('User model registered in User.ts:', !!mongoose.models.User);
+console.log('User model created:', User);
 
 export default User;

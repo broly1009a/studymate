@@ -13,9 +13,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function CreateGroupPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -26,8 +28,22 @@ export default function CreateGroupPage() {
     autoApprove: true,
   });
 
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      toast.error('Bạn cần đăng nhập để tạo nhóm');
+      return;
+    }
 
     if (!formData.name || !formData.description || !formData.category) {
       toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
@@ -36,12 +52,19 @@ export default function CreateGroupPage() {
 
     try {
       setSubmitting(true);
+      const slug = generateSlug(formData.name);
+      
       const response = await fetch('/api/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          maxMembers: parseInt(formData.maxMembers),
+          name: formData.name,
+          slug,
+          description: formData.description,
+          category: formData.category,
+          isPublic: formData.visibility === 'public',
+          creatorId: user.id,
+          creatorName: user.fullName,
         }),
       });
 

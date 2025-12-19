@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { connectDB } from '@/lib/mongodb';
 import CompetitionTeam from '@/models/CompetitionTeam';
 import Competition from '@/models/Competition';
 import User from '@/models/User';
+
+// console.log('User imported:', User);
 
 // GET - Fetch team details by ID
 export async function GET(
@@ -11,6 +14,9 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    // console.log('Registered models:', Object.keys(mongoose.models));
+    // console.log('User model registered:', !!mongoose.models.User);
 
     const { id } = await params;
 
@@ -33,6 +39,7 @@ export async function GET(
       { status: 200 }
     );
   } catch (error: any) {
+    console.error('Error in GET /api/teams/[id]:', error);
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch team' },
       { status: 500 }
@@ -50,6 +57,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+    const { userId } = body; // User ID from request body
 
     const team = await CompetitionTeam.findById(id);
     if (!team) {
@@ -59,10 +67,22 @@ export async function PUT(
       );
     }
 
-    // Update team fields
-    if (body.name) team.name = body.name;
-    if (body.description) team.description = body.description;
-    if (body.skillsNeeded) team.skillsNeeded = body.skillsNeeded;
+    // Check if user is team leader
+    const isLeader = team.members.some(member => 
+      (typeof member.userId === 'object' ? member.userId.toString() : member.userId) === userId && 
+      member.role === 'leader'
+    );
+
+    if (!isLeader) {
+      return NextResponse.json(
+        { success: false, message: 'Only team leader can edit the team' },
+        { status: 403 }
+      );
+    }
+
+    // Update team fields (exclude name for simplicity)
+    if (body.description !== undefined) team.description = body.description;
+    if (body.skillsNeeded !== undefined) team.skillsNeeded = body.skillsNeeded;
     if (typeof body.lookingForMembers === 'boolean') {
       team.lookingForMembers = body.lookingForMembers;
     }
