@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const userId = searchParams.get('userId'); // For getting requests sent to or received from user
-    const type = searchParams.get('type'); // 'sent' or 'received'
-    const status = searchParams.get('status'); // 'pending', 'accepted', 'rejected'
+    const userId = searchParams.get('userId'); 
+    const type = searchParams.get('type'); 
+    const status = searchParams.get('status'); 
 
     const skip = (page - 1) * limit;
     let query: any = {};

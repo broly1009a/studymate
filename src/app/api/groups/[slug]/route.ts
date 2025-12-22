@@ -3,6 +3,8 @@ import { connectDB } from '@/lib/mongodb';
 import Group from '@/models/Group';
 // Import User model to ensure it's registered before use
 import '@/models/User';
+import { verifyToken } from '@/lib/api/auth';
+import User from '@/models/User';
 
 // GET - Fetch single group
 export async function GET(
@@ -11,6 +13,42 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    // Get token from Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unauthorized',
+        },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid token',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'User not found',
+        },
+        { status: 404 }
+      );
+    }
 
     const { slug } = await params;
 
@@ -26,6 +64,17 @@ export async function GET(
           message: 'Group not found',
         },
         { status: 404 }
+      );
+    }
+
+    // Check if user is a member of the group (for private groups) or if group is public
+    if (!group.isPublic && !group.members.includes(user._id)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Access denied. You are not a member of this private group.',
+        },
+        { status: 403 }
       );
     }
 

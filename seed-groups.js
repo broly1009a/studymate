@@ -15,7 +15,7 @@ const seedGroups = async () => {
         description: 'Nhóm học tập dành cho những bạn yêu thích thuật toán và cấu trúc dữ liệu. Chúng ta sẽ cùng nhau giải quyết các bài toán khó và chuẩn bị cho các kỳ thi lập trình.',
         category: 'Khoa học máy tính',
         isPublic: true,
-        creatorId: new mongoose.Types.ObjectId(), // Replace with actual user ID
+        creatorId: new mongoose.Types.ObjectId(), 
         creatorName: 'Nguyễn Văn A',
         members: [],
         admins: [],
@@ -30,7 +30,7 @@ const seedGroups = async () => {
         description: 'Nhóm luyện tập tiếng Anh giao tiếp hàng ngày. Mỗi tuần chúng ta sẽ có các buổi practice speaking và listening.',
         category: 'Ngoại ngữ',
         isPublic: true,
-        creatorId: new mongoose.Types.ObjectId(), // Replace with actual user ID
+        creatorId: new mongoose.Types.ObjectId(), 
         creatorName: 'Trần Thị B',
         members: [],
         admins: [],
@@ -45,7 +45,7 @@ const seedGroups = async () => {
         description: 'Nhóm ôn tập môn Toán cho kỳ thi đại học. Chúng ta sẽ tập trung vào các dạng bài tập thường gặp và kỹ năng làm bài.',
         category: 'Ôn thi THPT',
         isPublic: true,
-        creatorId: new mongoose.Types.ObjectId(), // Replace with actual user ID
+        creatorId: new mongoose.Types.ObjectId(), 
         creatorName: 'Lê Văn C',
         members: [],
         admins: [],
@@ -60,7 +60,7 @@ const seedGroups = async () => {
         description: 'Nhóm học lập trình web từ cơ bản đến nâng cao. Bao gồm HTML, CSS, JavaScript, React, Node.js và MongoDB.',
         category: 'Khoa học máy tính',
         isPublic: true,
-        creatorId: new mongoose.Types.ObjectId(), // Replace with actual user ID
+        creatorId: new mongoose.Types.ObjectId(), 
         creatorName: 'Phạm Thị D',
         members: [],
         admins: [],
@@ -75,7 +75,7 @@ const seedGroups = async () => {
         description: 'Nhóm học marketing digital hiện đại. Bao gồm SEO, SEM, Social Media Marketing và Content Marketing.',
         category: 'Marketing',
         isPublic: true,
-        creatorId: new mongoose.Types.ObjectId(), // Replace with actual user ID
+        creatorId: new mongoose.Types.ObjectId(), 
         creatorName: 'Hoàng Văn E',
         members: [],
         admins: [],

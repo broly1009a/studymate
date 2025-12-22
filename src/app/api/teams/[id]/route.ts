@@ -57,7 +57,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { userId } = body; // User ID from request body
+    const { userId } = body; 
 
     const team = await CompetitionTeam.findById(id);
     if (!team) {

@@ -65,12 +65,12 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinConversation, leaveConversation, onNewMessage, emitMessagesRead, onMessagesRead } = useSocket();
 
-  // Auto scroll to bottom
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Fetch conversations
+
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
 
@@ -78,13 +78,13 @@ export default function MessagesPage() {
       const response = await fetch(`/api/conversations?userId=${user.id}`);
       const data = await response.json();
       if (data.success) {
-        // Sort conversations by lastMessageTime (newest first)
+       
         const sortedConversations = data.data.sort((a: Conversation, b: Conversation) => 
           new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
         setConversations(sortedConversations);
-        // Don't auto-select any conversation on first load
-        return sortedConversations; // Return sorted conversations for joining
+      
+        return sortedConversations; 
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -92,7 +92,7 @@ export default function MessagesPage() {
     return [];
   }, [user?.id]);
 
-  // Fetch messages for selected conversation
+ 
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
       const response = await fetch(`/api/messages?conversationId=${conversationId}`);
@@ -105,11 +105,10 @@ export default function MessagesPage() {
     }
   }, []);
 
-  // Mark messages as read
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
 
-    // Update UI immediately for better UX
+ 
     setConversations((prev) =>
       prev.map((conv) =>
         conv._id === conversationId
@@ -118,17 +117,16 @@ export default function MessagesPage() {
       )
     );
 
-    // Also mark messages as read in UI immediately
+  
     setMessages((prev) =>
       prev.map((msg) =>
         msg.senderId !== user.id ? { ...msg, read: true } : msg
       )
     );
 
-    // Emit socket event immediately so other user sees "Đã xem" in real-time
     emitMessagesRead(conversationId, user.id);
 
-    // Call API immediately (with proper error handling)
+
     try {
       console.log('🔵 Calling mark-read API for conversation:', conversationId);
       const response = await fetch(`/api/conversations/${conversationId}/mark-read`, {
@@ -149,27 +147,24 @@ export default function MessagesPage() {
     }
   }, [user?.id, emitMessagesRead]);
 
-  // Handle new message from socket
+ 
   const handleNewMessage = useCallback((data: any) => {
     const isCurrentConversation = selectedConversation && data.message.conversationId === selectedConversation._id;
     
-    // If message is for current conversation, add it to messages
+ 
     if (isCurrentConversation) {
       setMessages((prev) => [...prev, data.message]);
       
-      // Auto mark as read if we're in this conversation and message is from other user
+     
       if (data.message.senderId !== user?.id) {
         markAsRead(selectedConversation._id);
       }
     }
     
-    // Update conversation list with new message, unread counts, AND move to top
-    setConversations((prev) => {
-      // Update the conversation with new message data
-      const updatedConversations = prev.map((conv) => {
+  setConversations((prev) => {
+    const updatedConversations = prev.map((conv) => {
         if (conv._id === data.conversation._id) {
-          // If this is the current conversation, always keep unread count at 0
-          if (isCurrentConversation) {
+         if (isCurrentConversation) {
             return {
               ...conv,
               lastMessage: data.conversation.lastMessage,
@@ -177,8 +172,7 @@ export default function MessagesPage() {
               unreadCounts: { ...conv.unreadCounts, [user?.id || '']: 0 } // Always 0 when viewing
             };
           }
-          // Otherwise, use the unread count from server
-          return { 
+         return { 
             ...conv, 
             lastMessage: data.conversation.lastMessage, 
             lastMessageTime: data.conversation.lastMessageTime, 
@@ -188,8 +182,7 @@ export default function MessagesPage() {
         return conv;
       });
 
-      // Sort by lastMessageTime (newest first) - move conversation with new message to top
-      return updatedConversations.sort((a, b) => 
+    return updatedConversations.sort((a, b) => 
         new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
       );
     });
@@ -200,11 +193,9 @@ export default function MessagesPage() {
     return unsubscribe;
   }, [onNewMessage, handleNewMessage]);
 
-  // Listen for messages read events
-  useEffect(() => {
+ useEffect(() => {
     const handleMessagesRead = (data: { conversationId: string; userId: string }) => {
-      // Update messages to read: true for current conversation
-      if (selectedConversation?._id === data.conversationId) {
+     if (selectedConversation?._id === data.conversationId) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.senderId === user?.id ? { ...msg, read: true } : msg
@@ -217,13 +208,11 @@ export default function MessagesPage() {
     return unsubscribe;
   }, [onMessagesRead, selectedConversation?._id, user?.id]);
 
-  // Load initial data and join conversations once
   useEffect(() => {
     const loadAndJoinConversations = async () => {
       if (user?.id) {
         const convs = await fetchConversations();
-        // Join only new conversations that haven't been joined yet
-        if (convs && Array.isArray(convs)) {
+       if (convs && Array.isArray(convs)) {
           convs.forEach((conv: Conversation) => {
             if (!joinedConversationsRef.current.has(conv._id)) {
               joinConversation(conv._id);
@@ -236,10 +225,9 @@ export default function MessagesPage() {
     };
     
     loadAndJoinConversations();
-  }, [user?.id]); // Only run once when user ID is available
+  }, [user?.id]); 
 
-  // Load messages when conversation changes
-  useEffect(() => {
+ useEffect(() => {
     if (selectedConversation && selectedConversation._id !== lastConversationIdRef.current) {
       lastConversationIdRef.current = selectedConversation._id;
       

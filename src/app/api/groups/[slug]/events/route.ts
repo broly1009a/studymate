@@ -64,8 +64,8 @@ export async function GET(
       );
     }
 
-    // Check if user is a member of the group
-    if (!group.members.includes(user._id)) {
+    // Check if user is a member or admin of the group
+    if (!group.members.includes(user._id) && !group.admins.includes(user._id)) {
       return NextResponse.json(
         {
           success: false,

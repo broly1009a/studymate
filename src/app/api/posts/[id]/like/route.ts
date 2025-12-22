@@ -13,7 +13,7 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    const { userId, action } = body; // action: 'like' or 'unlike'
+    const { userId, action } = body;
 
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(userId)) {
       return NextResponse.json(

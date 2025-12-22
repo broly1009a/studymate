@@ -96,7 +96,6 @@ export default function DashboardPage() {
           }
         }
 
-        // Calculate quick stats (this could be from a dedicated API)
         // For now, use mock calculation
         setQuickStats({
           todayStudyTime: 45, // TODO: Calculate from study sessions

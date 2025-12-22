@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, MessageSquare, FolderOpen, Settings, UserPlus, Lock, Globe, Loader2, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -32,8 +32,10 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const [activeTab, setActiveTab] = useState('about');
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [actionLoading, setActionLoading] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
   const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
@@ -79,6 +81,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
             const isMemberOfGroup = groupData.data.members?.some((member: any) => member._id === currentUserId);
             const isAdminOfGroup = groupData.data.admins?.some((admin: any) => admin._id === currentUserId);
 
+            setCurrentUserId(currentUserId);
             setIsMember(isMemberOfGroup || false);
             setIsAdmin(isAdminOfGroup || false);
           }
@@ -192,7 +195,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
     }
   };
 
-  const handleCreateEvent = async () => {
+  const handleCreateOrUpdateEvent = async () => {
     if (!group) return;
 
     const token = localStorage.getItem('studymate_auth_token');
@@ -203,8 +206,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/groups/${slug}/events`, {
-        method: 'POST',
+      const isEditing = !!editingEvent;
+      const method = isEditing ? 'PUT' : 'POST';
+      const url = isEditing ? `/api/groups/${slug}/events/${editingEvent._id}` : `/api/groups/${slug}/events`;
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -215,8 +222,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Event created successfully!');
+        toast.success(isEditing ? 'Event updated successfully!' : 'Event created successfully!');
         setShowCreateEvent(false);
+        setEditingEvent(null);
         setEventForm({
           title: '',
           description: '',
@@ -236,14 +244,72 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
         const eventsData = await eventsRes.json();
         if (eventsData.success) setEvents(eventsData.data);
       } else {
-        toast.error(data.message || 'Failed to create event');
+        toast.error(data.message || `Failed to ${isEditing ? 'update' : 'create'} event`);
       }
     } catch (error) {
-      console.error('Failed to create event:', error);
-      toast.error('Failed to create event');
+      console.error(`Failed to ${editingEvent ? 'update' : 'create'} event:`, error);
+      toast.error(`Failed to ${editingEvent ? 'update' : 'create'} event`);
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!group) return;
+
+    const token = localStorage.getItem('studymate_auth_token');
+    if (!token) {
+      toast.error('Please login to delete events');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this event?')) return;
+
+    try {
+      setActionLoading(true);
+      const response = await fetch(`/api/groups/${slug}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Event deleted successfully!');
+        // Refresh events
+        const eventsRes = await fetch(`/api/groups/${slug}/events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const eventsData = await eventsRes.json();
+        if (eventsData.success) setEvents(eventsData.data);
+      } else {
+        toast.error(data.message || 'Failed to delete event');
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      toast.error('Failed to delete event');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    setEventForm({
+      title: event.title,
+      description: event.description,
+      startTime: event.startTime ? new Date(event.startTime).toISOString().slice(0, 16) : '',
+      endTime: event.endTime ? new Date(event.endTime).toISOString().slice(0, 16) : '',
+      location: event.location,
+      type: event.type,
+      isVirtual: event.isVirtual || false,
+      meetingLink: event.meetingLink || '',
+    });
+    setShowCreateEvent(true);
   };
 
   if (loading) {
@@ -422,7 +488,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
                   </CardDescription>
                 </div>
                 {isMember && (
-                  <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
+                  <Dialog open={showCreateEvent} onOpenChange={(open) => { setShowCreateEvent(open); if (!open) setEditingEvent(null); }}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -431,9 +497,9 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px]">
                       <DialogHeader>
-                        <DialogTitle>Create New Event</DialogTitle>
+                        <DialogTitle>{editingEvent ? 'Edit Event' : 'Create New Event'}</DialogTitle>
                         <DialogDescription>
-                          Create a new event for this group. All members will be notified.
+                          {editingEvent ? 'Update the event details.' : 'Create a new event for this group. All members will be notified.'}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
@@ -520,12 +586,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
                           </div>
                         )}
                         <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setShowCreateEvent(false)}>
+                          <Button variant="outline" onClick={() => { setShowCreateEvent(false); setEditingEvent(null); }}>
                             Cancel
                           </Button>
-                          <Button onClick={handleCreateEvent} disabled={actionLoading}>
+                          <Button onClick={handleCreateOrUpdateEvent} disabled={actionLoading}>
                             {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                            Create Event
+                            {editingEvent ? 'Update Event' : 'Create Event'}
                           </Button>
                         </div>
                       </div>
@@ -548,6 +614,26 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
                         {format(new Date(event.date), 'PPP')} at {event.time}
                       </p>
                     </div>
+                    {(event.creatorId === currentUserId || isAdmin) && (
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditEvent(event)}
+                          disabled={actionLoading}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteEvent(event._id)}
+                          disabled={actionLoading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 {events.length > 5 && (

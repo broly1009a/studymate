@@ -4,8 +4,7 @@ import Message from '@/models/Message';
 import Conversation from '@/models/Conversation';
 import mongoose from 'mongoose';
 
-// PUT - Mark all messages in conversation as read (heavyweight operation)
-// Use this when need to update message read status, e.g., when leaving conversation
+// PUT - Mark all messages in conversation as read
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

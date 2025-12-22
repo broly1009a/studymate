@@ -71,7 +71,6 @@ export default function OnboardingPage() {
       setIsLoading(true);
       const finalData = { ...onboardingData, ...data };
       
-      // Mock API call - replace with actual API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Update user profile

@@ -3,8 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import mongoose from 'mongoose';
 
-// POST - Quick mark conversation as read (only update unread count, not messages)
-// This is lightweight and called frequently when user views conversation
+// POST - Quick mark conversation as read 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();

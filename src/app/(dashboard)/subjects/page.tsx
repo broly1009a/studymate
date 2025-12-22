@@ -36,7 +36,7 @@ export default function SubjectsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: '', icon: '', color: '#3b82f6' });
 
-  // Fetch subjects from API
+ 
   useEffect(() => {
     const fetchSubjects = async () => {
       if (!user?.id) return;
@@ -92,7 +92,7 @@ export default function SubjectsPage() {
 
       const createdSubject = await response.json();
 
-      // Add to local state
+    
       setSubjects(prev => [createdSubject, ...prev]);
 
       toast.success('Thêm môn học thành công!');

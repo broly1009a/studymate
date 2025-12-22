@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/api/auth';
+import { connectDB } from '@/lib/mongodb';
+import User from '@/models/User';
 
 export async function GET(request: NextRequest) {
   try {
+    await connectDB();
+
     // Get token from Authorization header
     const authHeader = request.headers.get('authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Missing or invalid authorization header' },
+        { success: false, message: 'Missing or invalid authorization header' },
         { status: 401 }
       );
     }
@@ -20,29 +24,38 @@ export async function GET(request: NextRequest) {
 
     if (!decoded) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { success: false, message: 'Invalid or expired token' },
         { status: 401 }
       );
     }
 
-    // In real app, fetch user from database using decoded.id
-    const mockUser = {
-      id: decoded.id,
-      email: decoded.email,
-      username: 'testuser',
-      fullName: 'Test User',
-      avatar: undefined,
-      role: decoded.role,
-      isEmailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    // Fetch user from database
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ user: mockUser });
+    return NextResponse.json({
+      success: true,
+      data: {
+        _id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        avatar: user.avatar,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      }
+    });
   } catch (error) {
     console.error('Get current user error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     );
   }

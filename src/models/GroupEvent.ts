@@ -13,6 +13,9 @@ export interface IGroupEvent extends Document {
     userId: mongoose.Types.ObjectId;
     status: 'going' | 'maybe' | 'not_going' | 'no_response';
   }>;
+  isVirtual?: boolean;
+  meetingLink?: string;
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +72,18 @@ const groupEventSchema = new Schema<IGroupEvent>(
         },
       ],
       default: [],
+    },
+    isVirtual: {
+      type: Boolean,
+      default: false,
+    },
+    meetingLink: {
+      type: String,
+      default: '',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {
