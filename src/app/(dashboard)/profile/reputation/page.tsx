@@ -85,7 +85,7 @@ export default function FacebookLikeProfile() {
         <div className="absolute -bottom-16 left-4 md:left-6">
           <div className="relative">
             <Image
-              src={profile.avatar}
+              src={profile.avatar || '/default-avatar.png'}
               alt="avatar"
               width={180}
               height={180}
@@ -196,12 +196,10 @@ export default function FacebookLikeProfile() {
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
 
       {/* =================== CONTENT (TRÁI: INFO, PHẢI: BÀI VIẾT) =================== */}
-      <div className="w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Left column */}
         <div className="md:col-span-1 space-y-4">
           <Card>
@@ -266,14 +264,14 @@ export default function FacebookLikeProfile() {
                 <div key={i} className="rounded-xl border p-4">
                   <div className="flex gap-3">
                     <Image
-                      src={profile.avatar}
+                      src={profile.avatar || '/default-avatar.png'}
                       alt=""
                       width={40}
                       height={40}
                       className="h-10 w-10 rounded-full"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold">{profile.name}</div>
+                      <div className="font-semibold">{profile.fullName}</div>
                       <div className="text-sm text-muted-foreground">2 giờ trước</div>
                     </div>
                   </div>
@@ -284,6 +282,7 @@ export default function FacebookLikeProfile() {
               ))}
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     </div>
