@@ -48,8 +48,7 @@ const categorySchema = new Schema<ICategory>(
   }
 );
 
-// Indexes
-categorySchema.index({ name: 1 });
+// Indexes (name already indexed via unique: true)
 
 const Category: Model<ICategory> =
   mongoose.models.Category || mongoose.model<ICategory>('Category', categorySchema);
