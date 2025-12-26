@@ -17,6 +17,7 @@ interface Subject {
   id: string;
   name: string;
   icon: string;
+  color: string;
 }
 
 export default function ActiveSessionPage() {

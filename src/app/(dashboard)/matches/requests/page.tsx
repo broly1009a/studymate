@@ -230,14 +230,14 @@ export default function PartnerRequestsPage() {
                 <CardContent>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleAccept(request._id || request.id, request.partnerName)}
+                      onClick={() => handleAccept(request._id || request.id || '', request.partnerName)}
                       className="flex-1"
                     >
                       <Check className="h-4 w-4 mr-2" />
                       Accept
                     </Button>
                     <Button
-                      onClick={() => handleReject(request._id || request.id, request.partnerName)}
+                      onClick={() => handleReject(request._id || request.id || '', request.partnerName)}
                       variant="outline"
                       className="flex-1"
                     >

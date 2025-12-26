@@ -21,6 +21,7 @@ interface Partner {
   avatar: string;
   major: string;
   rating: number;
+  reviewsCount?: number;
   availability: string[];
   subjects: string[];
 }

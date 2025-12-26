@@ -96,7 +96,7 @@ export default function DiscoverPage() {
   }, [currentStoryIndex, selectedPartner, isPaused])
 
   const handleNextStory = () => {
-    if (!selectedPartner) return
+    if (!selectedPartner || !selectedPartner.stories) return
 
     if (currentStoryIndex < selectedPartner.stories.length - 1) {
       setCurrentStoryIndex(currentStoryIndex + 1)
@@ -239,7 +239,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Story Viewer - Full Screen Modal */}
-      {selectedPartner && (
+      {selectedPartner && selectedPartner.stories && selectedPartner.stories.length > 0 && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
           {/* Close button */}
           <button

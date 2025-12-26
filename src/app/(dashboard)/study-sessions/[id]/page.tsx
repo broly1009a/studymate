@@ -25,6 +25,20 @@ interface Session {
   startTime: string;
   endTime: string;
   status: string;
+  tags?: string[];
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  color: string;
+  icon: string;
+  totalHours: number;
+  sessionsCount: number;
+  averageSessionLength: number;
+  topics: string[];
+  goalHours: number;
+  progress: number;
 }
 
 export default function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -32,6 +46,7 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const { user } = useAuth();
   const [session, setSession] = useState<Session | null>(null);
+  const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -44,7 +59,21 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
         const response = await fetch(`/api/study-records/${id}?userId=${user.id}`);
         if (!response.ok) throw new Error('Failed to fetch session');
         const data = await response.json();
-        setSession(data.data || data);
+        const sessionData = data.data || data;
+        setSession(sessionData);
+
+        // Fetch subject data nếu có subjectId
+        if (sessionData.subjectId) {
+          try {
+            const subjectResponse = await fetch(`/api/subjects/${sessionData.subjectId}`);
+            if (subjectResponse.ok) {
+              const subjectData = await subjectResponse.json();
+              setSubject(subjectData);
+            }
+          } catch (error) {
+            console.error('Error fetching subject:', error);
+          }
+        }
       } catch (error: any) {
         toast.error('Failed to load session');
         console.error('Error fetching session:', error);
@@ -254,24 +283,34 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
           {subject && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Subject Info</CardTitle>
+                <CardTitle className="text-base">Thông tin môn học</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <div className="text-sm text-muted-foreground">Total Hours</div>
+                  <div className="text-sm text-muted-foreground">Tổng giờ học</div>
                   <div className="font-semibold">{subject.totalHours}h</div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Total Sessions</div>
+                  <div className="text-sm text-muted-foreground">Tổng phiên học</div>
                   <div className="font-semibold">{subject.sessionsCount}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Avg Session</div>
-                  <div className="font-semibold">{subject.averageSessionLength} min</div>
+                  <div className="text-sm text-muted-foreground">Phiên học trung bình</div>
+                  <div className="font-semibold">{subject.averageSessionLength} phút</div>
                 </div>
-                <Link href={`/subjects/${subject.id}`}>
+                <div>
+                  <div className="text-sm text-muted-foreground">Tiến độ</div>
+                  <div className="font-semibold">{subject.progress}%</div>
+                  <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 rounded-full transition-all"
+                      style={{ width: `${subject.progress}%` }}
+                    />
+                  </div>
+                </div>
+                <Link href={`/subjects/${subject._id}`}>
                   <Button variant="outline" size="sm" className="w-full mt-2">
-                    View Subject Details
+                    Xem chi tiết môn học
                   </Button>
                 </Link>
               </CardContent>

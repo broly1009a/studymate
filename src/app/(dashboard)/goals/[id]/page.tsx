@@ -26,6 +26,7 @@ interface Goal {
   startDate: string;
   completedAt?: string;
   category: string;
+  type?: string;
   subjectName?: string;
 }
 
@@ -335,10 +336,12 @@ export default function GoalDetailPage({ params }: { params: Promise<{ id: strin
               <CardTitle className="text-base">Goal Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Type</div>
-                <div className="font-medium capitalize">{goal.type.replace('_', ' ')}</div>
-              </div>
+              {goal.type && (
+                <div>
+                  <div className="text-sm text-muted-foreground">Type</div>
+                  <div className="font-medium capitalize">{goal.type.replace('_', ' ')}</div>
+                </div>
+              )}
               <div>
                 <div className="text-sm text-muted-foreground">Category</div>
                 <div className="font-medium capitalize">{goal.category}</div>

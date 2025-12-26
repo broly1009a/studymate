@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { registerSchema } from '@/lib/validations';
 import type { AuthResponse } from '@/types/auth';
 import { createToken, hashPassword } from '@/lib/api/auth';
-import { connectToDatabase } from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
@@ -13,8 +13,11 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = registerSchema.parse(body);
 
+    // Connect to database
+    await connectDB();
+
     // Check if user already exists
-    const existingUser = await User.findOne({ $or: [{ email: validatedData.email }, { username: validatedData.username }] });
+    const existingUser = await User.findOne({ email: validatedData.email });
     if (existingUser) {
       return NextResponse.json(
         { error: 'Email or username already exists' },
@@ -28,11 +31,10 @@ export async function POST(request: NextRequest) {
     // Create user
     const newUser = new User({
       email: validatedData.email,
-      username: validatedData.username,
       fullName: validatedData.fullName,
       password: hashedPassword,
       role: 'student',
-      isEmailVerified: false,
+      verified: false,
     });
 
     await newUser.save();
@@ -48,7 +50,6 @@ export async function POST(request: NextRequest) {
       user: {
         id: newUser._id.toString(),
         email: newUser.email,
-        username: newUser.username,
         fullName: newUser.fullName,
         avatar: newUser.avatar,
         role: newUser.role,
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: 'Validation error', details: error.issues },
         { status: 400 }
       );
     }

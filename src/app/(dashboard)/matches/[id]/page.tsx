@@ -28,6 +28,7 @@ interface Partner {
   studyStyle: string[];
   goals: string[];
   rating: number;
+  reviewsCount?: number;
   matchScore: number;
   studyHours: number;
   sessionsCompleted: number;

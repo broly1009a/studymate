@@ -246,7 +246,7 @@ export default function PartnerSessionsPage() {
                       </Button>
                     </Link>
                     <Button
-                      onClick={() => handleCancelSession(session._id || session.id)}
+                      onClick={() => handleCancelSession(session._id || session.id || '')}
                       variant="outline"
                       className="flex-1"
                     >

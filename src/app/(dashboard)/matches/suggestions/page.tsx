@@ -130,7 +130,7 @@ export default function MatchSuggestionsPage() {
         <div className="hidden lg:flex flex-col gap-4 w-32">
           {suggestions.slice(Math.max(0, currentIndex - 2), currentIndex).map((partner) => (
             <button
-              key={partner.id}
+              key={partner._id}
               onClick={() => setCurrentIndex(suggestions.indexOf(partner))}
               className="relative w-full aspect-[3/4] rounded-lg overflow-hidden opacity-50 hover:opacity-75 transition"
             >
@@ -258,7 +258,7 @@ export default function MatchSuggestionsPage() {
         <div className="hidden lg:flex flex-col gap-4 w-32">
           {suggestions.slice(currentIndex + 1, currentIndex + 3).map((partner) => (
             <button
-              key={partner.id}
+              key={partner._id}
               onClick={() => setCurrentIndex(suggestions.indexOf(partner))}
               className="relative w-full aspect-[3/4] rounded-lg overflow-hidden opacity-50 hover:opacity-75 transition"
             >
