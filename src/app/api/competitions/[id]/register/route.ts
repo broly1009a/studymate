@@ -49,13 +49,12 @@ export async function POST(
       );
     }
 
-    const userIdObj = new mongoose.Types.ObjectId(userId);
-    const isParticipant = competition.participants.includes(userIdObj);
+    const isParticipant = competition.participants.includes(userId);
 
     if (action === 'register' && !isParticipant) {
       if (
         competition.maxParticipants &&
-        competition.participants_count >= competition.maxParticipants
+        competition.participantCount >= competition.maxParticipants
       ) {
         return NextResponse.json(
           {
@@ -65,13 +64,13 @@ export async function POST(
           { status: 400 }
         );
       }
-      competition.participants.push(userIdObj);
-      competition.participants_count += 1;
+      competition.participants.push(userId);
+      competition.participantCount += 1;
     } else if (action === 'unregister' && isParticipant) {
       competition.participants = competition.participants.filter(
-        (pId) => !pId.equals(userIdObj)
+        (pId) => pId !== userId
       );
-      competition.participants_count = Math.max(0, competition.participants_count - 1);
+      competition.participantCount = Math.max(0, competition.participantCount - 1);
     }
 
     await competition.save();
@@ -81,7 +80,7 @@ export async function POST(
         success: true,
         message: `User ${action}ed successfully`,
         data: {
-          participants_count: competition.participants_count,
+          participantCount: competition.participantCount,
           participants: competition.participants,
         },
       },

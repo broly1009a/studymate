@@ -4,6 +4,7 @@ console.log('Loading User model');
 
 export interface IUser extends Document {
   email: string;
+  username: string;
   password: string;
   fullName: string;
   avatar?: string;
@@ -38,6 +39,14 @@ const userSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
       // match: [/^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
+    },
+    username: {
+      type: String,
+      required: [true, 'Username is required'],
+      unique: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 20,
     },
     password: {
       type: String,

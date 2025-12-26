@@ -5,6 +5,7 @@ import type { AuthResponse } from '@/types/auth';
 import { createToken, hashPassword } from '@/lib/api/auth';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import { createVerificationToken, sendVerificationEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,9 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: validatedData.email });
+    const existingUser = await User.findOne({ 
+      $or: [{ email: validatedData.email }, { username: validatedData.username }] 
+    });
     if (existingUser) {
       return NextResponse.json(
         { error: 'Email or username already exists' },
@@ -31,6 +34,7 @@ export async function POST(request: NextRequest) {
     // Create user
     const newUser = new User({
       email: validatedData.email,
+      username: validatedData.username,
       fullName: validatedData.fullName,
       password: hashedPassword,
       role: 'student',
@@ -50,6 +54,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: newUser._id.toString(),
         email: newUser.email,
+        username: newUser.username,
         fullName: newUser.fullName,
         avatar: newUser.avatar,
         role: newUser.role,
@@ -60,8 +65,18 @@ export async function POST(request: NextRequest) {
       token,
     };
 
-    // TODO: Send verification email
-    // await sendVerificationEmail(newUser.email, verificationToken);
+    // Send verification email
+    try {
+      const verificationToken = await createVerificationToken(
+        newUser._id.toString(),
+        newUser.email,
+        'email'
+      );
+      await sendVerificationEmail(newUser.email, newUser.fullName, verificationToken);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Don't fail registration if email fails - user can request resend later
+    }
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

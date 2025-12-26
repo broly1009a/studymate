@@ -6,7 +6,7 @@ export interface INote extends Document {
   content: string;
   subject: string;
   tags: string[];
-  folderId?: mongoose.Types.ObjectId;
+  folderId?: mongoose.Types.ObjectId | null;
   isPinned: boolean;
   isFavorite: boolean;
   isDeleted: boolean;

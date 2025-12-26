@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { resetPasswordSchema } from '@/lib/validations';
+import connectDB from '@/lib/mongodb';
+import User from '@/models/User';
+import { hashPassword } from '@/lib/api/auth';
+import { verifyToken } from '@/lib/email';
+import VerificationToken from '@/models/VerificationToken';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,20 +24,38 @@ export async function POST(request: NextRequest) {
     // Validate password data
     const validatedData = resetPasswordSchema.parse(body);
 
-    // In real app:
-    // 1. Verify reset token is valid and not expired
-    // 2. Find user with matching reset token
-    // 3. Hash new password
-    // 4. Update user password
-    // 5. Delete reset token from database
+    // Connect to database
+    await connectDB();
 
-    // Mock implementation
-    if (!resetToken || resetToken.length < 5) {
+    // Verify reset token
+    const tokenData = await verifyToken(resetToken, 'password-reset');
+
+    if (!tokenData) {
       return NextResponse.json(
         { error: 'Invalid or expired reset token' },
         { status: 400 }
       );
     }
+
+    // Find user
+    const user = await User.findById(tokenData.userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(validatedData.password);
+
+    // Update user password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Delete the used token
+    await VerificationToken.deleteOne({ _id: tokenData._id });
 
     return NextResponse.json(
       { message: 'Password reset successfully' },

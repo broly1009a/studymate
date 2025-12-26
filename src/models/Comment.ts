@@ -8,7 +8,7 @@ export interface IComment extends Document {
   content: string;
   likes: number;
   likesBy: mongoose.Types.ObjectId[];
-  replies: IComment[];
+  replies: mongoose.Types.ObjectId[];
   parentCommentId?: mongoose.Types.ObjectId;
   status: 'active' | 'hidden' | 'deleted';
   createdAt: Date;

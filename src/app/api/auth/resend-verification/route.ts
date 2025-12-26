@@ -1,50 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { forgotPasswordSchema } from '@/lib/validations';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
-import { createVerificationToken, sendPasswordResetEmail } from '@/lib/email';
+import { createVerificationToken, sendVerificationEmail } from '@/lib/email';
+
+const resendEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     // Validate input
-    const validatedData = forgotPasswordSchema.parse(body);
+    const validatedData = resendEmailSchema.parse(body);
 
     // Connect to database
     await connectDB();
 
-    // Find user by email
+    // Find user
     const user = await User.findOne({ email: validatedData.email });
 
     if (!user) {
       // Don't reveal if user exists or not for security
       return NextResponse.json(
-        { message: 'If an account exists with this email, a password reset link will be sent' },
+        { message: 'If an account exists with this email, a verification email will be sent' },
         { status: 200 }
       );
     }
 
-    // Create and send password reset token
+    // Check if already verified
+    if (user.verified) {
+      return NextResponse.json(
+        { error: 'Email is already verified' },
+        { status: 400 }
+      );
+    }
+
+    // Create and send new verification token
     try {
-      const resetToken = await createVerificationToken(
+      const verificationToken = await createVerificationToken(
         user._id.toString(),
         user.email,
-        'password-reset'
+        'email'
       );
-      await sendPasswordResetEmail(user.email, user.fullName, resetToken);
+      await sendVerificationEmail(user.email, user.fullName, verificationToken);
 
       return NextResponse.json(
-        { message: 'If an account exists with this email, a password reset link will be sent' },
+        { message: 'Verification email sent successfully' },
         { status: 200 }
       );
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
-      // Still return success to not reveal if user exists
+      console.error('Failed to send verification email:', emailError);
       return NextResponse.json(
-        { message: 'If an account exists with this email, a password reset link will be sent' },
-        { status: 200 }
+        { error: 'Failed to send verification email. Please try again later.' },
+        { status: 500 }
       );
     }
   } catch (error) {
@@ -55,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Forgot password error:', error);
+    console.error('Resend verification error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
