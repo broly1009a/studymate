@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { API_URL } from '@/lib/constants';
 export default function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const [group, setGroup] = useState<any>(null);
@@ -57,7 +57,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
       try {
         setLoading(true);
-        const groupRes = await fetch(`/api/groups/${slug}`, {
+        const groupRes = await fetch(`${API_URL}/groups/${slug}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -69,7 +69,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
           // Check membership status by making an API call to get current user
           // We'll check if the current user is a member of this group
-          const userRes = await fetch('/api/auth/me', {
+          const userRes = await fetch(`${API_URL}/auth/me`, {
             headers: {
               'Authorization': `Bearer ${token}`,
             },
@@ -88,12 +88,12 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
           // Fetch members and events using the slug
           const [membersRes, eventsRes] = await Promise.all([
-            fetch(`/api/groups/${slug}/members`, {
+            fetch(`${API_URL}/groups/${slug}/members`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },
             }),
-            fetch(`/api/groups/${slug}/events`, {
+            fetch(`${API_URL}/groups/${slug}/events`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
               },
@@ -128,7 +128,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/groups/${slug}/join`, {
+      const response = await fetch(`${API_URL}/groups/${slug}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
         toast.success('Successfully joined the group!');
         setIsMember(true);
         // Refresh group data
-        const groupRes = await fetch(`/api/groups/${slug}`);
+        const groupRes = await fetch(`${API_URL}/groups/${slug}`);
         const groupData = await groupRes.json();
         if (groupData.success) setGroup(groupData.data);
       } else {
@@ -167,7 +167,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/groups/${slug}/leave`, {
+      const response = await fetch(`${API_URL}/groups/${slug}/leave`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
         toast.success('Successfully left the group');
         setIsMember(false);
         // Refresh group data
-        const groupRes = await fetch(`/api/groups/${slug}`);
+        const groupRes = await fetch(`${API_URL}/groups/${slug}`);
         const groupData = await groupRes.json();
         if (groupData.success) setGroup(groupData.data);
       } else {
@@ -208,7 +208,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
       setActionLoading(true);
       const isEditing = !!editingEvent;
       const method = isEditing ? 'PUT' : 'POST';
-      const url = isEditing ? `/api/groups/${slug}/events/${editingEvent._id}` : `/api/groups/${slug}/events`;
+      const url = isEditing ? `${API_URL}/groups/${slug}/events/${editingEvent._id}` : `${API_URL}/groups/${slug}/events`;
 
       const response = await fetch(url, {
         method,
@@ -236,7 +236,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
           meetingLink: '',
         });
         // Refresh events
-        const eventsRes = await fetch(`/api/groups/${slug}/events`, {
+        const eventsRes = await fetch(`${API_URL}/groups/${slug}/events`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -267,7 +267,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/groups/${slug}/events/${eventId}`, {
+      const response = await fetch(`${API_URL}/groups/${slug}/events/${eventId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
+import { API_URL } from '@/lib/constants';
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function ForgotPasswordPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

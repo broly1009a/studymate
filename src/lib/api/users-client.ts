@@ -3,6 +3,8 @@
  * Wraps fetch calls with proper error handling and token management
  */
 
+import { API_URL } from '@/lib/constants';
+
 /**
  * Get user profile by ID
  * GET /api/users/[id]

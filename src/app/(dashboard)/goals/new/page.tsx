@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
-
+import { API_URL } from '@/lib/constants';
 interface Subject {
   id: string;
   name: string;
@@ -43,7 +43,7 @@ export default function NewGoalPage() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await fetch(`/api/subjects?userId=${user?.id}`);
+        const response = await fetch(`${API_URL}/subjects?userId=${user?.id}`);
         if (response.ok) {
           const data = await response.json();
           setSubjects(data.data || []);
@@ -86,7 +86,7 @@ export default function NewGoalPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/goals', {
+      const response = await fetch(`${API_URL}/goals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

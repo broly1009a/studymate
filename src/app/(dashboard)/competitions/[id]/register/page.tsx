@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
-
+import { API_URL } from '@/lib/constants';
 export default function RegisterCompetitionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -27,8 +27,8 @@ export default function RegisterCompetitionPage({ params }: { params: Promise<{ 
       try {
         setLoading(true);
         const [compRes, teamsRes] = await Promise.all([
-          fetch(`/api/competitions/${id}`),
-          fetch('/api/teams?forCompetition=true'),
+          fetch(`${API_URL}/competitions/${id}`),
+          fetch(`${API_URL}/teams?forCompetition=true`),
         ]);
 
         const compData = await compRes.json();

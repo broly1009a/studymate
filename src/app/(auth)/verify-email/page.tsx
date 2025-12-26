@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
-
+import { API_URL } from '@/lib/constants';
 type VerificationStatus = 'verifying' | 'success' | 'error' | 'resend';
 
 function VerifyEmailContent() {
@@ -28,7 +28,7 @@ function VerifyEmailContent() {
     // Verify email with token
     const verifyEmail = async () => {
       try {
-        const response = await fetch('/api/auth/verify-email', {
+        const response = await fetch(`${API_URL}/auth/verify-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ function VerifyEmailContent() {
         return;
       }
 
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

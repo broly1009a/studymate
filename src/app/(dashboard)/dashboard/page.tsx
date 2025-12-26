@@ -10,7 +10,7 @@ import { AIRecommendations } from '@/components/dashboard/ai-recommendations';
 import { UpcomingEvents } from '@/components/dashboard/upcoming-events';
 import type { DashboardData } from '@/types/dashboard';
 import { useEffect, useState } from 'react';
-
+import { API_URL } from '@/lib/constants';
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
 
@@ -38,7 +38,7 @@ export default function DashboardPage() {
       setLoading(true);
       try {
         // Fetch study streak
-        const streakResponse = await fetch(`/api/study-streak?userId=${user.id}`);
+        const streakResponse = await fetch(`${API_URL}/study-streak?userId=${user.id}`);
         if (streakResponse.ok) {
           const streakData = await streakResponse.json();
           if (streakData.success) {
@@ -47,21 +47,21 @@ export default function DashboardPage() {
         }
 
         // Fetch recent activities
-        const activitiesResponse = await fetch(`/api/activities?userId=${user.id}&limit=3`);
+        const activitiesResponse = await fetch(`${API_URL}/activities?userId=${user.id}&limit=3`);
         if (activitiesResponse.ok) {
           const activitiesData = await activitiesResponse.json();
           setRecentActivities(activitiesData.data || []);
         }
 
         // Fetch study goals
-        const goalsResponse = await fetch(`/api/goals?userId=${user.id}`);
+        const goalsResponse = await fetch(`${API_URL}/goals?userId=${user.id}`);
         if (goalsResponse.ok) {
           const goalsData = await goalsResponse.json();
           setStudyGoals(goalsData.data || []);
         }
 
         // Fetch upcoming events
-        const eventsResponse = await fetch('/api/events?limit=5');
+        const eventsResponse = await fetch(`${API_URL}/events?limit=5`);
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json();
           if (eventsData.success) {
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         }
 
         // Fetch featured events (Tinder-like carousel)
-        const featuredResponse = await fetch('/api/featured-events?limit=3&sortBy=trending');
+        const featuredResponse = await fetch(`${API_URL}/featured-events?limit=3&sortBy=trending`);
         if (featuredResponse.ok) {
           const featuredData = await featuredResponse.json();
           if (featuredData.success) {
@@ -79,7 +79,7 @@ export default function DashboardPage() {
         }
 
         // Fetch AI Recommendations
-        const recommendationsResponse = await fetch(`/api/recommendations?userId=${user.id}&limit=3`);
+        const recommendationsResponse = await fetch(`${API_URL}/recommendations?userId=${user.id}&limit=3`);
         if (recommendationsResponse.ok) {
           const recommendationsData = await recommendationsResponse.json();
           if (recommendationsData.success) {
@@ -88,7 +88,7 @@ export default function DashboardPage() {
         }
 
         // Fetch today schedule (study sessions)
-        const scheduleResponse = await fetch(`/api/study-sessions?userId=${user.id}&date=today&status=scheduled`);
+        const scheduleResponse = await fetch(`${API_URL}/study-sessions?userId=${user.id}&date=today&status=scheduled`);
         if (scheduleResponse.ok) {
           const scheduleData = await scheduleResponse.json();
           if (scheduleData.success) {

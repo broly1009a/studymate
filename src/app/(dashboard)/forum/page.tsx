@@ -13,7 +13,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { vi as viLocale } from 'date-fns/locale';
 import { vi } from '@/lib/i18n/vi';
 import { toast } from 'sonner';
-
+import { API_URL } from '@/lib/constants';
 interface Question {
   _id: string;
   id?: string;
@@ -76,9 +76,9 @@ export default function ForumPage() {
         params.append('limit', '50');
 
         const [questionsRes, statsRes, tagsRes] = await Promise.all([
-          fetch(`/api/forum-questions?${params}`),
-          fetch('/api/forum-questions/stats'),
-          fetch('/api/forum-questions/popular-tags'),
+          fetch(`${API_URL}/forum-questions?${params}`),
+          fetch(`${API_URL}/forum-questions/stats`),
+          fetch(`${API_URL}/forum-questions/popular-tags`),
         ]);
 
         if (questionsRes.ok) {

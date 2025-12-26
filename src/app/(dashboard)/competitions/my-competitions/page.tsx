@@ -9,7 +9,7 @@ import { Trophy, Calendar, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { format } from 'date-fns';
-
+import { API_URL } from '@/lib/constants';
 export default function MyCompetitionsPage() {
   const [myCompetitions, setMyCompetitions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,7 @@ export default function MyCompetitionsPage() {
     const fetchMyCompetitions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/competitions/my-competitions');
+        const response = await fetch(`${API_URL}/competitions/my-competitions`);
         const data = await response.json();
         if (data.success) {
           setMyCompetitions(data.data);
@@ -146,7 +146,6 @@ export default function MyCompetitionsPage() {
           </Tabs>
         </>
       )}
-      </Tabs>
     </div>
   );
 }

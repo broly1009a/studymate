@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 import { toast } from 'sonner';
-
+import { API_URL } from '@/lib/constants';
 interface SavedQuestion {
   _id: string;
   id?: string;
@@ -27,7 +27,7 @@ export default function SavedQuestionsPage() {
     const fetchSavedQuestions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/forum-questions/saved');
+        const response = await fetch(`${API_URL}/forum-questions/saved`);
         if (!response.ok) {
           throw new Error('Failed to fetch saved questions');
         }

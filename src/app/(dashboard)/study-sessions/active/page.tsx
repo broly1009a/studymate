@@ -11,6 +11,7 @@ import { Play, Pause, Square, Coffee, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { API_URL } from '@/lib/constants';
 
 interface Subject {
   id: string;
@@ -50,7 +51,7 @@ export default function ActiveSessionPage() {
 
     const fetchSubjects = async () => {
       try {
-        const response = await fetch(`/api/subjects?userId=${user.id}`);
+        const response = await fetch(`${API_URL}/subjects?userId=${user.id}`);
         if (response.ok) {
           const data = await response.json();
           setSubjects(data.data || []);

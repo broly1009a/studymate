@@ -21,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
+import { API_URL } from '@/lib/constants';
 
 function ResetPasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +77,7 @@ function ResetPasswordContent() {
     try {
       setIsLoading(true);
 
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

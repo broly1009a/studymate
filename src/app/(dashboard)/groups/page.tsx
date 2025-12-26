@@ -37,7 +37,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-
+import { API_URL } from '@/lib/constants';
 export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -77,7 +77,7 @@ export default function GroupsPage() {
           params.append('visibility', visibilityFilter);
         }
 
-        const response = await fetch(`/api/groups?${params.toString()}`, {
+        const response = await fetch(`${API_URL}/groups?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -108,7 +108,7 @@ export default function GroupsPage() {
       }
 
       try {
-        const response = await fetch('/api/groups/stats', {
+        const response = await fetch(`${API_URL}/groups/stats`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

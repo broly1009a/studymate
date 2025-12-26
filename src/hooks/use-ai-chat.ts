@@ -8,6 +8,8 @@
 
 'use client';
 
+import { API_URL } from '@/lib/constants';
+
 import { useState } from 'react';
 
 interface ChatMessage {
@@ -63,7 +65,7 @@ export function useAIChat(): UseAIChatReturn {
     setResponse(null);
 
     try {
-      const result = await fetch('/api/ai/chat', {
+      const result = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

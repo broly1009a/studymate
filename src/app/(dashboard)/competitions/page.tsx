@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
 import { vi as viLocale } from 'date-fns/locale';
 import { vi } from '@/lib/i18n/vi';
-
+import { API_URL } from '@/lib/constants';
 export default function CompetitionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -33,8 +33,8 @@ export default function CompetitionsPage() {
         if (difficultyFilter !== 'all') params.append('difficulty', difficultyFilter);
 
         const [compRes, statsRes] = await Promise.all([
-          fetch(`/api/competitions?${params.toString()}`),
-          fetch('/api/competitions/stats'),
+          fetch(`${API_URL}/competitions?${params.toString()}`),
+          fetch(`${API_URL}/competitions/stats`),
         ]);
 
         const compData = await compRes.json();

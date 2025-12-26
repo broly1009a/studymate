@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
 import { toast } from 'sonner';
-
+import { API_URL } from '@/lib/constants';
 interface Answer {
   _id: string;
   id?: string;
@@ -43,7 +43,7 @@ export default function MyAnswersPage() {
     const fetchAnswers = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/forum-answers/my-answers');
+        const response = await fetch(`${API_URL}/forum-answers/my-answers`);
         if (!response.ok) {
           throw new Error('Failed to fetch answers');
         }

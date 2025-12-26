@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
-
+import { API_URL } from '@/lib/constants';
 export default function NewCompetitionPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +46,7 @@ export default function NewCompetitionPage() {
 
     try {
       setSubmitting(true);
-      const response = await fetch('/api/competitions', {
+      const response = await fetch(`${API_URL}/competitions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, status }),
