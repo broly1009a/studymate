@@ -5,7 +5,7 @@ import { useSocket } from '@/hooks/use-socket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { API_URL } from '@/lib/constants';
 interface Message {
   _id: string;
   senderId: string;
@@ -80,7 +80,7 @@ export default function ChatRealtime({
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+      const response = await fetch(`${API_URL}/messages?conversationId=${conversationId}`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.data);
@@ -94,7 +94,7 @@ export default function ChatRealtime({
     if (!newMessage.trim()) return;
 
     try {
-      const response = await fetch('/api/messages', {
+      const response = await fetch(`${API_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

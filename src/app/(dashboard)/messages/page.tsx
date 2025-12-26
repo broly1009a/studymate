@@ -26,7 +26,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
 import { useSocket } from '@/hooks/use-socket';
-
+import { API_URL } from '@/lib/constants';
 interface Conversation {
   _id: string;
   participants: string[];
@@ -75,7 +75,7 @@ export default function MessagesPage() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(`/api/conversations?userId=${user.id}`);
+      const response = await fetch(`${API_URL}/conversations?userId=${user.id}`);
       const data = await response.json();
       if (data.success) {
        
@@ -95,7 +95,7 @@ export default function MessagesPage() {
  
   const fetchMessages = useCallback(async (conversationId: string) => {
     try {
-      const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+      const response = await fetch(`${API_URL}/messages?conversationId=${conversationId}`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.data);
@@ -129,7 +129,7 @@ export default function MessagesPage() {
 
     try {
       console.log('🔵 Calling mark-read API for conversation:', conversationId);
-      const response = await fetch(`/api/conversations/${conversationId}/mark-read`, {
+      const response = await fetch(`${API_URL}/conversations/${conversationId}/mark-read`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedConversation || !user) return;
 
     try {
-      const response = await fetch('/api/messages', {
+      const response = await fetch(`${API_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
