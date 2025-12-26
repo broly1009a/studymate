@@ -37,6 +37,7 @@ export interface PartnerRequest {
   message: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
+  type?: 'sent' | 'received';
 }
 
 export interface StudySession {
@@ -175,6 +176,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '6',
+    userId: '10',
     name: 'Dương Văn Duy',
     avatar: '/avt6.png',
     age: 22,
@@ -199,6 +201,7 @@ const mockPartners: StudyPartner[] = [
   // New Partners Added Below
   {
     id: '7',
+    userId: '7',
     name: 'Lê Thị Thu Hiền',
     avatar: '/anh6_EXE.jpg',
     age: 22,
@@ -222,6 +225,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '8',
+    userId: '8',
     name: 'Dương Đức Công',
     avatar: '/anh8_EXE.jpg',
     age: 23,
@@ -245,6 +249,7 @@ const mockPartners: StudyPartner[] = [
   },
   {
     id: '9',
+    userId: '9',
     name: 'Nguyễn Thị Mai Lan',
     avatar: '/anh7_EXE.jpg',
     age: 21,

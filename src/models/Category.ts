@@ -49,7 +49,6 @@ const categorySchema = new Schema<ICategory>(
 );
 
 // Indexes
-categorySchema.index({ slug: 1 });
 categorySchema.index({ name: 1 });
 
 const Category: Model<ICategory> =

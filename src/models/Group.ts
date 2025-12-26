@@ -103,7 +103,6 @@ const groupSchema = new Schema<IGroup>(
 );
 
 // Indexes
-groupSchema.index({ slug: 1 });
 groupSchema.index({ creatorId: 1 });
 groupSchema.index({ subject: 1 });
 groupSchema.index({ isPublic: 1 });

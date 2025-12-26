@@ -37,9 +37,6 @@ const studyStreakSchema = new Schema<IStudyStreak>(
   }
 );
 
-// Indexes
-studyStreakSchema.index({ userId: 1 });
-
 const StudyStreak: Model<IStudyStreak> =
   mongoose.models.StudyStreak || mongoose.model<IStudyStreak>('StudyStreak', studyStreakSchema);
 

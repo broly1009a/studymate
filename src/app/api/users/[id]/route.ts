@@ -116,7 +116,7 @@ export async function PUT(
     await user.save();
 
     const userResponse = user.toObject();
-    delete userResponse.password;
+    delete (userResponse as any).password;
 
     return NextResponse.json(
       {

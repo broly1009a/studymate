@@ -83,7 +83,6 @@ const userProfileSchema = new Schema<IUserProfile>(
   }
 );
 
-userProfileSchema.index({ userId: 1 });
 userProfileSchema.index({ username: 1 });
 
 const UserProfile: Model<IUserProfile> =

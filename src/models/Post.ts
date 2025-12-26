@@ -112,7 +112,6 @@ const postSchema = new Schema<IPost>(
 );
 
 // Indexes
-postSchema.index({ slug: 1 });
 postSchema.index({ authorId: 1 });
 postSchema.index({ category: 1 });
 postSchema.index({ tags: 1 });

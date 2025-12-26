@@ -45,7 +45,6 @@ const verificationTokenSchema = new Schema<IVerificationToken>(
 );
 
 // Indexes
-verificationTokenSchema.index({ token: 1 });
 verificationTokenSchema.index({ userId: 1, type: 1 });
 verificationTokenSchema.index({ email: 1 });
 
