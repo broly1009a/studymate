@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import UserProfile from '@/models/UserProfile';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const profile = await UserProfile.findById(params.id).populate('userId');
+    const profile = await UserProfile.findById(id).populate('userId');
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { fullName, bio, avatar, coverPhoto, phone, location, website, education } = body;
 
     const updatedProfile = await UserProfile.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(fullName && { fullName }),
@@ -52,11 +54,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedProfile = await UserProfile.findByIdAndDelete(params.id);
+    const deletedProfile = await UserProfile.findByIdAndDelete(id);
 
     if (!deletedProfile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });

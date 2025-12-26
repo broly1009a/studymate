@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Subject from '@/models/Subject';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const subject = await Subject.findById(params.id);
+    const subject = await Subject.findById(id);
 
     if (!subject) {
       return NextResponse.json({ error: 'Subject not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { name, color, icon, goalHours, topics, progress } = body;
 
     const updatedSubject = await Subject.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(name && { name }),
@@ -50,11 +52,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedSubject = await Subject.findByIdAndDelete(params.id);
+    const deletedSubject = await Subject.findByIdAndDelete(id);
 
     if (!deletedSubject) {
       return NextResponse.json({ error: 'Subject not found' }, { status: 404 });

@@ -5,12 +5,12 @@ import CompetitionTeam from '@/models/CompetitionTeam';
 // PUT - Update member role in team
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const teamId = params.id;
+    const { id: teamId } = await params;
     const body = await request.json();
     const { userId, role } = body;
 

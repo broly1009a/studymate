@@ -6,12 +6,13 @@ import Competition from '@/models/Competition';
 // GET - Fetch a single team
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const teamId = params.id;
+    const teamId = id;
     const team = await CompetitionTeam.findById(teamId).populate('members.userId', 'fullName avatar email');
 
     if (!team) {
@@ -39,12 +40,13 @@ export async function GET(
 // PUT - Update team
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const teamId = params.id;
+    const teamId = id;
     const body = await request.json();
     const { name, description, maxMembers, skillsNeeded, lookingForMembers } = body;
 
@@ -84,12 +86,13 @@ export async function PUT(
 // DELETE - Delete team
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const teamId = params.id;
+    const teamId = id;
     const team = await CompetitionTeam.findByIdAndDelete(teamId);
 
     if (!team) {

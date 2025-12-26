@@ -7,12 +7,13 @@ import mongoose from 'mongoose';
 // GET - Fetch single note
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const noteId = params.id;
+    const noteId = id;
 
     if (!mongoose.Types.ObjectId.isValid(noteId)) {
       return NextResponse.json(
@@ -51,12 +52,13 @@ export async function GET(
 // PUT - Update note
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const noteId = params.id;
+    const noteId = id;
     const body = await request.json();
     const { title, content, subject, tags, folderId } = body;
 
@@ -140,12 +142,13 @@ export async function PUT(
 // DELETE - Delete note (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const noteId = params.id;
+    const noteId = id;
 
     if (!mongoose.Types.ObjectId.isValid(noteId)) {
       return NextResponse.json(

@@ -8,12 +8,13 @@ import mongoose from 'mongoose';
 // GET - Fetch single post and increment views
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const postId = params.id;
+    const postId = id;
 
     if (!mongoose.Types.ObjectId.isValid(postId)) {
       return NextResponse.json(
@@ -63,12 +64,13 @@ export async function GET(
 // PUT - Update blog post
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const postId = params.id;
+    const postId = id;
     const body = await request.json();
     const { title, slug, excerpt, content, coverImage, categoryId, tags, readTime, status, featured } = body;
 
@@ -136,12 +138,13 @@ export async function PUT(
 // DELETE - Delete blog post
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const postId = params.id;
+    const postId = id;
 
     if (!mongoose.Types.ObjectId.isValid(postId)) {
       return NextResponse.json(

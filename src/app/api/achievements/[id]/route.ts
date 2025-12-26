@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Achievement from '@/models/Achievement';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const achievement = await Achievement.findById(params.id);
+    const achievement = await Achievement.findById(id);
 
     if (!achievement) {
       return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { isUnlocked, progress } = body;
 
     const updatedAchievement = await Achievement.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(isUnlocked !== undefined && {
@@ -49,11 +51,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedAchievement = await Achievement.findByIdAndDelete(params.id);
+    const deletedAchievement = await Achievement.findByIdAndDelete(id);
 
     if (!deletedAchievement) {
       return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import GroupResource from '@/models/GroupResource';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const resource = await GroupResource.findById(params.id).populate('uploaderId', 'username avatar');
+    const resource = await GroupResource.findById(id).populate('uploaderId', 'username avatar');
 
     if (!resource) {
       return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { name, tags } = body;
 
     const updatedResource = await GroupResource.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(name && { name }),
@@ -46,11 +48,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedResource = await GroupResource.findByIdAndDelete(params.id);
+    const deletedResource = await GroupResource.findByIdAndDelete(id);
 
     if (!deletedResource) {
       return NextResponse.json({ error: 'Resource not found' }, { status: 404 });

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Badge from '@/models/Badge';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const badge = await Badge.findById(params.id);
+    const badge = await Badge.findById(id);
 
     if (!badge) {
       return NextResponse.json({ error: 'Badge not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { name, description, icon, locked, progress, earnedAt } = body;
 
     const updatedBadge = await Badge.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(name && { name }),
@@ -50,11 +52,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedBadge = await Badge.findByIdAndDelete(params.id);
+    const deletedBadge = await Badge.findByIdAndDelete(id);
 
     if (!deletedBadge) {
       return NextResponse.json({ error: 'Badge not found' }, { status: 404 });

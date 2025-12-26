@@ -7,12 +7,13 @@ import mongoose from 'mongoose';
 // GET - Fetch single folder
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const folderId = params.id;
+    const folderId = id;
 
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       return NextResponse.json(
@@ -51,12 +52,13 @@ export async function GET(
 // PUT - Update folder
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const folderId = params.id;
+    const folderId = id;
     const body = await request.json();
     const { name, color, description } = body;
 
@@ -104,12 +106,13 @@ export async function PUT(
 // DELETE - Delete folder (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const folderId = params.id;
+    const folderId = id;
 
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       return NextResponse.json(

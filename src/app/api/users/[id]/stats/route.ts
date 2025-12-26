@@ -28,10 +28,10 @@ const mockUserStats: Record<string, any> = {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // In real app, fetch from database and calculate stats
     const stats = mockUserStats[id];

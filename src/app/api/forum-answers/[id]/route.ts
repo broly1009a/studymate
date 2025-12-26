@@ -3,12 +3,13 @@ import { connectDB } from '@/lib/mongodb';
 import Answer from '@/models/Answer';
 import Question from '@/models/Question';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest,{ params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
 
-    const answer = await Answer.findById(params.id).populate('authorId', 'username avatar reputation');
+    const { id } = await params;
 
+    const answer = await Answer.findById(id).populate('authorId', 'username avatar reputation');
     if (!answer) {
       return NextResponse.json({ error: 'Answer not found' }, { status: 404 });
     }
@@ -19,15 +20,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+
+    const { id } = await params;
 
     const body = await req.json();
     const { content } = body;
 
     const updatedAnswer = await Answer.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: { content } },
       { new: true, runValidators: true }
     ).populate('authorId', 'username avatar reputation');
@@ -42,16 +45,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
 
-    const answer = await Answer.findById(params.id);
+    const { id } = await params;
+
+    const answer = await Answer.findById(id);
     if (!answer) {
       return NextResponse.json({ error: 'Answer not found' }, { status: 404 });
     }
 
-    const deletedAnswer = await Answer.findByIdAndDelete(params.id);
+    const deletedAnswer = await Answer.findByIdAndDelete(id);
 
     // Update question answersCount
     await Question.findByIdAndUpdate(

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import GroupMessage from '@/models/GroupMessage';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { emoji, userId } = body;
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'emoji and userId are required' }, { status: 400 });
     }
 
-    const message = await GroupMessage.findById(params.id);
+    const message = await GroupMessage.findById(id);
     if (!message) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }

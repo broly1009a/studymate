@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Question from '@/models/Question';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
 
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'userId and voteType are required' }, { status: 400 });
     }
 
-    const question = await Question.findById(params.id);
+    const { id } = await params;
+    const question = await Question.findById(id);
     if (!question) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }

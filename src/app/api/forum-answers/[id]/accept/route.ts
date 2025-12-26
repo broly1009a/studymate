@@ -3,11 +3,13 @@ import { connectDB } from '@/lib/mongodb';
 import Answer from '@/models/Answer';
 import Question from '@/models/Question';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
 
-    const answer = await Answer.findById(params.id);
+    const { id } = await params;
+
+    const answer = await Answer.findById(id);
     if (!answer) {
       return NextResponse.json({ error: 'Answer not found' }, { status: 404 });
     }
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Accept this answer
     const acceptedAnswer = await Answer.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: { isAccepted: true } },
       { new: true }
     ).populate('authorId', 'username avatar reputation');

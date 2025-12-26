@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import StudySessionRecord from '@/models/StudySessionRecord';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const record = await StudySessionRecord.findById(params.id).populate('userId subjectId');
+    const record = await StudySessionRecord.findById(id).populate('userId subjectId');
 
     if (!record) {
       return NextResponse.json({ error: 'Study record not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { topic, notes, focusScore, breaks, pomodoroCount, status, tags } = body;
 
     const updatedRecord = await StudySessionRecord.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(topic && { topic }),
@@ -51,11 +53,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedRecord = await StudySessionRecord.findByIdAndDelete(params.id);
+    const deletedRecord = await StudySessionRecord.findByIdAndDelete(id);
 
     if (!deletedRecord) {
       return NextResponse.json({ error: 'Study record not found' }, { status: 404 });

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Goal from '@/models/Goal';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { currentValue } = body;
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'currentValue is required' }, { status: 400 });
     }
 
-    const goal = await Goal.findById(params.id);
+    const goal = await Goal.findById(id);
     if (!goal) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }

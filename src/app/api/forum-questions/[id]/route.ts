@@ -4,16 +4,17 @@ import Question from '@/models/Question';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
     }
 
     const question = await Question.findByIdAndUpdate(
-      params.id,
+      id,
       { $inc: { views: 1 } },
       { new: true }
     ).populate('authorId', 'username avatar reputation');
@@ -28,11 +29,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
     }
 
@@ -40,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const { title, content, tags, status } = body;
 
     const updatedQuestion = await Question.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(title && { title }),
@@ -62,15 +64,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid question ID' }, { status: 400 });
     }
 
-    const deletedQuestion = await Question.findByIdAndDelete(params.id);
+    const deletedQuestion = await Question.findByIdAndDelete(id);
 
     if (!deletedQuestion) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });

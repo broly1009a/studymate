@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import GroupEvent from '@/models/GroupEvent';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const event = await GroupEvent.findById(params.id).populate('creatorId', 'username avatar');
+    const event = await GroupEvent.findById(id).populate('creatorId', 'username avatar');
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { title, description, startTime, endTime, location, type } = body;
 
     const updatedEvent = await GroupEvent.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(title && { title }),
@@ -50,11 +52,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedEvent = await GroupEvent.findByIdAndDelete(params.id);
+    const deletedEvent = await GroupEvent.findByIdAndDelete(id);
 
     if (!deletedEvent) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });

@@ -6,12 +6,13 @@ import mongoose from 'mongoose';
 // POST - Like/Unlike a blog comment
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const commentId = params.id;
+    const commentId = id;
     const body = await request.json();
     const { userId } = body;
 

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
           avgParticipants: [
             { $group: { _id: null, avg: { $avg: '$participantCount' } } },
           ],
-        ],
+        },
       },
     ]);
 

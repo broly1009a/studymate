@@ -7,12 +7,13 @@ import mongoose from 'mongoose';
 // GET - Fetch single comment
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const commentId = params.id;
+    const commentId = id;
 
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       return NextResponse.json(
@@ -48,12 +49,13 @@ export async function GET(
 // PUT - Update comment
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const commentId = params.id;
+    const commentId = id;
     const body = await request.json();
     const { content } = body;
 
@@ -101,12 +103,13 @@ export async function PUT(
 // DELETE - Delete comment (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const commentId = params.id;
+    const commentId = id;
 
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       return NextResponse.json(

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Skill from '@/models/Skill';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const skill = await Skill.findById(params.id);
+    const skill = await Skill.findById(id);
 
     if (!skill) {
       return NextResponse.json({ error: 'Skill not found' }, { status: 404 });
@@ -18,15 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const body = await req.json();
     const { name, category, level, yearsOfExperience, endorsements } = body;
 
     const updatedSkill = await Skill.findByIdAndUpdate(
-      params.id,
+      id,
       {
         $set: {
           ...(name && { name }),
@@ -49,11 +51,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const deletedSkill = await Skill.findByIdAndDelete(params.id);
+    const deletedSkill = await Skill.findByIdAndDelete(id);
 
     if (!deletedSkill) {
       return NextResponse.json({ error: 'Skill not found' }, { status: 404 });

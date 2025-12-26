@@ -6,12 +6,13 @@ import mongoose from 'mongoose';
 // GET - Fetch single category by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const categoryId = params.id;
+    const categoryId = id;
 
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return NextResponse.json(
@@ -47,12 +48,13 @@ export async function GET(
 // PUT - Update category
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const categoryId = params.id;
+    const categoryId = id;
     const body = await request.json();
     const { name, slug, description, color } = body;
 
@@ -108,12 +110,13 @@ export async function PUT(
 // DELETE - Delete category
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const categoryId = params.id;
+    const categoryId = id;
 
     if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return NextResponse.json(

@@ -6,12 +6,13 @@ import mongoose from 'mongoose';
 // PUT - Toggle favorite status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    const noteId = params.id;
+    const noteId = id;
 
     if (!mongoose.Types.ObjectId.isValid(noteId)) {
       return NextResponse.json(
