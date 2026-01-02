@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Goal from '@/models/Goal';
-import Subject from '@/models/Subject';
+// import Subject from '@/models/Subject';
 
 export async function GET(req: NextRequest) {
   try {

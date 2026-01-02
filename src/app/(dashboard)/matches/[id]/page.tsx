@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Partner {
   _id: string;
@@ -41,11 +42,17 @@ interface Partner {
 export default function PartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [existingRequest, setExistingRequest] = useState<{
+    _id: string;
+    status: 'pending' | 'accepted' | 'rejected';
+  } | null>(null);
+  const [checkingRequest, setCheckingRequest] = useState(false);
 
   useEffect(() => {
     const fetchPartner = async () => {
@@ -67,6 +74,40 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
 
     fetchPartner();
   }, [id]);
+
+  // Check if there's an existing request
+  useEffect(() => {
+    const checkExistingRequest = async () => {
+      if (!user?.id || !partner?._id) return;
+
+      try {
+        setCheckingRequest(true);
+        const response = await fetch(
+          `/api/partner-requests?userId=${user.id}&type=sent&status=pending`
+        );
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          // Find request to this specific partner
+          const request = data.data.find(
+            (req: any) => String(req.receiverId) === String(partner._id)
+          );
+          if (request) {
+            setExistingRequest({
+              _id: request._id,
+              status: request.status,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check existing request:', error);
+      } finally {
+        setCheckingRequest(false);
+      }
+    };
+
+    checkExistingRequest();
+  }, [user?.id, partner?._id]);
 
   if (loading) {
     return (
@@ -100,6 +141,11 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
       toast.error('Vui lòng viết tin nhắn');
       return;
     }
+
+    if (!user) {
+      toast.error('Bạn cần đăng nhập để gửi yêu cầu');
+      return;
+    }
     
     try {
       setSending(true);
@@ -109,21 +155,36 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          partnerId: partner?._id || id,
+          senderId: user.id,
+          senderName: user.fullName,
+          senderAvatar: user.avatar,
+          receiverId: partner?._id || id,
+          receiverName: partner?.name,
+          receiverAvatar: partner?.avatar,
           message: message.trim(),
           subject: partner?.subjects[0] || '',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send request');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send request');
       }
 
       toast.success('Đã gửi yêu cầu thành công!');
       setIsDialogOpen(false);
       setMessage('');
+      
+      // Update existing request state
+      const result = await response.json();
+      if (result.data) {
+        setExistingRequest({
+          _id: result.data._id,
+          status: 'pending',
+        });
+      }
     } catch (error: any) {
-      toast.error('Không thể gửi yêu cầu');
+      toast.error(error.message || 'Không thể gửi yêu cầu');
       console.error('Error sending request:', error);
     } finally {
       setSending(false);
@@ -190,36 +251,74 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </CardHeader>
             <CardContent>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full" size="lg" disabled={sending}>
-                    <MessageCircle className="h-5 w-5 mr-2" />
-                    {sending ? 'Đang gửi...' : 'Gửi yêu cầu học cùng'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Gửi yêu cầu học cùng đến {partner.name}</DialogTitle>
-                    <DialogDescription>
-                      Giới thiệu bản thân và chia sẻ những gì bạn muốn học cùng nhau
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div>
-                      <Label>Tin nhắn</Label>
-                      <Textarea
-                        placeholder="Chào bạn! Mình rất muốn được học cùng..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        rows={5}
-                      />
-                    </div>
-                    <Button onClick={handleSendRequest} className="w-full">
-                      Gửi yêu cầu
+              {existingRequest ? (
+                <div className="space-y-3">
+                  {existingRequest.status === 'pending' && (
+                    <>
+                      <Badge className="w-full justify-center py-2 bg-yellow-500/10 text-yellow-600 border-yellow-300">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Đã gửi yêu cầu - Đang chờ phản hồi
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => router.push('/partner-requests')}
+                      >
+                        Xem yêu cầu của bạn
+                      </Button>
+                    </>
+                  )}
+                  {existingRequest.status === 'accepted' && (
+                    <Button
+                      className="w-full"
+                      onClick={() => router.push('/messages')}
+                    >
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      Nhắn tin
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  )}
+                  {existingRequest.status === 'rejected' && (
+                    <Badge className="w-full justify-center py-2 bg-red-500/10 text-red-600 border-red-300">
+                      Yêu cầu đã bị từ chối
+                    </Badge>
+                  )}
+                </div>
+              ) : (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="w-full" 
+                      size="lg" 
+                      disabled={sending || checkingRequest}
+                    >
+                      <MessageCircle className="h-5 w-5 mr-2" />
+                      {checkingRequest ? 'Đang kiểm tra...' : sending ? 'Đang gửi...' : 'Gửi yêu cầu học cùng'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Gửi yêu cầu học cùng đến {partner.name}</DialogTitle>
+                      <DialogDescription>
+                        Giới thiệu bản thân và chia sẻ những gì bạn muốn học cùng nhau
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Tin nhắn</Label>
+                        <Textarea
+                          placeholder="Chào bạn! Mình rất muốn được học cùng..."
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          rows={5}
+                        />
+                      </div>
+                      <Button onClick={handleSendRequest} className="w-full">
+                        Gửi yêu cầu
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
             </CardContent>
           </Card>
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import PartnerRequest from '@/models/PartnerRequest';
+import Notification from '@/models/Notification';
 
 // GET - Fetch partner requests
 export async function GET(request: NextRequest) {
@@ -134,6 +135,23 @@ export async function POST(request: NextRequest) {
     });
 
     await partnerRequest.save();
+
+    // Create notification for receiver
+    try {
+      const notification = new Notification({
+        userId: receiverId,
+        title: 'Yêu cầu học cùng mới',
+        message: `${senderName} muốn học ${subject} cùng bạn`,
+        type: 'partner_request',
+        relatedId: partnerRequest._id,
+        isRead: false,
+      });
+      
+      await notification.save();
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+      // Don't fail the request if notification creation fails
+    }
 
     return NextResponse.json(
       {
