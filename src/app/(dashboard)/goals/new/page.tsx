@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { API_URL } from '@/lib/constants';
 interface Subject {
   id: string;
+  _id?: string;
   name: string;
   icon: string;
 }
@@ -247,7 +248,7 @@ export default function NewGoalPage() {
                 <SelectContent>
                   <SelectItem value="none">No subject</SelectItem>
                   {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
+                    <SelectItem key={subject._id || subject.id} value={subject._id || subject.id || ''}>
                       {subject.icon} {subject.name}
                     </SelectItem>
                   ))}

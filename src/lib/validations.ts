@@ -47,22 +47,35 @@ export const resetPasswordSchema = z.object({
   path: ['passwordConfirmation'],
 });
 
-// Onboarding Validations
+// Onboarding Validations - New matching system
 export const onboardingStep1Schema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  bio: z.string().max(500, 'Bio must be at most 500 characters').optional(),
+  fullName: z.string().min(1, 'Ô này phải chứa từ 1 đến 22 ký tự.').max(22, 'Ô này phải chứa từ 1 đến 22 ký tự.'),
+  dateOfBirth: z.object({
+    day: z.string().min(1, 'Ngày sinh không hợp lệ'),
+    month: z.string().min(1, 'Tháng sinh không hợp lệ'),
+    year: z.string().min(1, 'Năm sinh không hợp lệ'),
+  }),
+  gender: z.enum(['male', 'female', 'other'], {
+    required_error: 'Vui lòng chọn giới tính',
+  }),
 });
 
 export const onboardingStep2Schema = z.object({
-  subjects: z.array(z.string()).min(1, 'Please select at least one subject'),
-  interests: z.array(z.string()).min(1, 'Please select at least one interest'),
+  university: z.string().min(1, 'Vui lòng chọn trường đại học'),
+  major: z.string().min(1, 'Vui lòng chọn chuyên ngành'),
+  learningNeeds: z.array(z.string()).min(1, 'Vui lòng chọn ít nhất 1 nhu cầu học tập'),
 });
 
 export const onboardingStep3Schema = z.object({
-  studyStyle: z.enum(['visual', 'auditory', 'kinesthetic', 'reading']),
-  preferredTime: z.enum(['morning', 'afternoon', 'evening', 'night']),
-  sessionDuration: z.number().min(15).max(240),
-  groupSize: z.enum(['one-on-one', 'small-group', 'large-group']),
+  learningGoals: z.array(z.string()).min(1, 'Vui lòng chọn ít nhất 1 mục tiêu học tập'),
+  studyHabits: z.array(z.string()).min(1, 'Vui lòng chọn ít nhất 1 thói quen học tập'),
+  mbtiType: z.string().optional(),
+});
+
+export const onboardingStep4Schema = z.object({
+  gpa: z.string().optional(),
+  certificates: z.array(z.string()).optional(),
+  awards: z.array(z.string()).optional(),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
@@ -72,4 +85,5 @@ export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type OnboardingStep1Data = z.infer<typeof onboardingStep1Schema>;
 export type OnboardingStep2Data = z.infer<typeof onboardingStep2Schema>;
 export type OnboardingStep3Data = z.infer<typeof onboardingStep3Schema>;
+export type OnboardingStep4Data = z.infer<typeof onboardingStep4Schema>;
 

@@ -14,7 +14,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
 interface Subject {
-  id: string;
+  _id: string;
+  id?: string;
   name: string;
   icon: string;
   color: string;
@@ -178,7 +179,7 @@ export default function StudySessionsPage() {
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
                 {subjects.map((subject) => (
-                  <SelectItem key={subject.id} value={subject.id}>
+                  <SelectItem key={subject._id || subject.id} value={subject._id || subject.id || ''}>
                     {subject.icon} {subject.name}
                   </SelectItem>
                 ))}
@@ -203,7 +204,7 @@ export default function StudySessionsPage() {
               </div>
             ) : (
               filteredSessions.map((session) => {
-                const subject = subjects.find((s) => s.id === session.subjectId);
+                const subject = subjects.find((s) => (s._id || s.id) === session.subjectId);
                 return (
                   <Link
                     key={session._id}

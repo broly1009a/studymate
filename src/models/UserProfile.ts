@@ -16,6 +16,15 @@ export interface IUserProfile extends Document {
     major?: string;
     graduationYear?: number;
   };
+  // Matching data - Nhóm 3: Nhu cầu & mục tiêu
+  learningNeeds?: string[]; // Nhu cầu học tập
+  learningGoals?: string[]; // Mục tiêu học tập
+  studyHabits?: string[]; // Thói quen học tập
+  mbtiType?: string; // MBTI personality type
+  // Matching data - Nhóm 4: Kỹ năng, thành tựu
+  gpa?: string; // GPA range
+  awards?: string[]; // Giải thưởng
+  certificates?: string[]; // Chứng chỉ
   reputation: number;
   createdAt: Date;
   updatedAt: Date;
@@ -71,6 +80,43 @@ const userProfileSchema = new Schema<IUserProfile>(
       institution: String,
       major: String,
       graduationYear: Number,
+    },
+    // Matching data - Nhóm 3: Nhu cầu & mục tiêu
+    learningNeeds: {
+      type: [String],
+      default: [],
+    },
+    learningGoals: {
+      type: [String],
+      default: [],
+    },
+    studyHabits: {
+      type: [String],
+      default: [],
+    },
+    mbtiType: {
+      type: String,
+      enum: [
+        'ISTJ', 'ISFJ', 'INFJ', 'INTJ',
+        'ISTP', 'ISFP', 'INFP', 'INTP',
+        'ESTP', 'ESFP', 'ENFP', 'ENTP',
+        'ESTJ', 'ESFJ', 'ENFJ', 'ENTJ'
+      ],
+      default: null,
+    },
+    // Matching data - Nhóm 4: Kỹ năng, thành tựu
+    gpa: {
+      type: String,
+      enum: ['<2.5', '2.5-3.0', '3.0-3.5', '3.5-4.0'],
+      default: null,
+    },
+    awards: {
+      type: [String],
+      default: [],
+    },
+    certificates: {
+      type: [String],
+      default: [],
     },
     reputation: {
       type: Number,

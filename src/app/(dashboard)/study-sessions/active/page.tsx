@@ -15,6 +15,7 @@ import { API_URL } from '@/lib/constants';
 
 interface Subject {
   id: string;
+  _id?: string;
   name: string;
   icon: string;
   color: string;
@@ -182,7 +183,7 @@ export default function ActiveSessionPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
+                    <SelectItem key={subject._id || subject.id} value={subject._id || subject.id || ''}>
                       {subject.icon} {subject.name}
                     </SelectItem>
                   ))}

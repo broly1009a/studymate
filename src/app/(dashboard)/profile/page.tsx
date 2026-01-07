@@ -12,6 +12,7 @@ import { getUserProfile, getUserActivities } from '@/lib/api/profile-client';
 import { ProfileAchievements } from './profile-achievements';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/types/profile';
+import { AUTH_TOKEN_KEY } from '@/lib/constants';
 
 export default function ProfilePage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -25,7 +26,7 @@ export default function ProfilePage() {
       try {
         if (!user) return;
 
-        const token = localStorage.getItem('auth-token');
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
         if (!token) {
           setError('No authentication token found');
           return;

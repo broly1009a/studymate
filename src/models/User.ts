@@ -5,7 +5,14 @@ export interface IUser extends Document {
   username: string;
   password: string;
   fullName: string;
+  gender?: 'male' | 'female' | 'other';
+  dateOfBirth?: Date;
   avatar?: string;
+  profileImages?: Array<{
+    url: string;
+    publicId: string;
+    order: number;
+  }>;
   bio?: string;
   phone?: string;
   location?: string;
@@ -57,9 +64,28 @@ const userSchema = new Schema<IUser>(
       required: [true, 'Full name is required'],
       trim: true,
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+      default: null,
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
     avatar: {
       type: String,
       default: null,
+    },
+    profileImages: {
+      type: [
+        {
+          url: String,
+          publicId: String,
+          order: Number,
+        },
+      ],
+      default: [],
     },
     bio: {
       type: String,
