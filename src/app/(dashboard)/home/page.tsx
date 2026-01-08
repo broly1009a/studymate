@@ -98,7 +98,35 @@ export default function HomePage() {
         const response = await fetch('/api/events?limit=6&sortBy=date&order=asc');
         const result = await response.json();
         if (result.success) {
-          setEvents(result.data);
+          let eventsToShow = result.data;
+          
+          // Filter out already viewed/interacted events if user is logged in
+          if (userId) {
+            try {
+              const token = localStorage.getItem('token');
+              if (token) {
+                const interactionsRes = await fetch(
+                  `/api/activity-interactions?activityType=event`,
+                  {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                  }
+                );
+                const interactionsData = await interactionsRes.json();
+                
+                if (interactionsData.success && interactionsData.data?.length) {
+                  const viewedEventIds = interactionsData.data.map((i: any) => i.activityId);
+                  eventsToShow = eventsToShow.filter(
+                    (event: any) => !viewedEventIds.includes(event._id)
+                  );
+                }
+              }
+            } catch (error) {
+              console.error('Failed to filter viewed events:', error);
+              // Continue with all events if filtering fails
+            }
+          }
+          
+          setEvents(eventsToShow);
         }
       } catch (error) {
         console.error('Failed to fetch events:', error);
@@ -108,7 +136,7 @@ export default function HomePage() {
     };
 
     fetchEvents();
-  }, []);
+  }, [userId]);
 
   // Fetch study streak
   useEffect(() => {

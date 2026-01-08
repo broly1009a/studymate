@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import Competition from '@/models/Competition';
 import mongoose from 'mongoose';
+import { verifyToken } from '@/lib/api/auth';
+import User from '@/models/User';
 
 // GET - Fetch single competition
 export async function GET(
@@ -68,6 +70,42 @@ export async function PUT(
   try {
     await connectDB();
 
+    // Authentication check
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unauthorized - Authentication required',
+        },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid or expired token',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'User not found',
+        },
+        { status: 404 }
+      );
+    }
+
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -103,6 +141,20 @@ export async function PUT(
           message: 'Competition not found',
         },
         { status: 404 }
+      );
+    }
+
+    // Authorization check - only owner or admin can edit
+    if (
+      competition.organizerId.toString() !== user._id.toString() &&
+      user.role !== 'admin'
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Access denied - Only competition organizer or admin can edit',
+        },
+        { status: 403 }
       );
     }
 
@@ -147,6 +199,42 @@ export async function DELETE(
   try {
     await connectDB();
 
+    // Authentication check
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Unauthorized - Authentication required',
+        },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Invalid or expired token',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'User not found',
+        },
+        { status: 404 }
+      );
+    }
+
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -159,7 +247,7 @@ export async function DELETE(
       );
     }
 
-    const competition = await Competition.findByIdAndDelete(id);
+    const competition = await Competition.findById(id);
 
     if (!competition) {
       return NextResponse.json(
@@ -170,6 +258,22 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Authorization check - only owner or admin can delete
+    if (
+      competition.organizerId.toString() !== user._id.toString() &&
+      user.role !== 'admin'
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Access denied - Only competition organizer or admin can delete',
+        },
+        { status: 403 }
+      );
+    }
+
+    await Competition.findByIdAndDelete(id);
 
     return NextResponse.json(
       {

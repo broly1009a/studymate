@@ -4,15 +4,24 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Heart, Info, Calendar, MapPin, Users, Clock } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { X, Heart, Info, Calendar, MapPin, Users, Clock, User } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { vi as viLocale } from 'date-fns/locale/vi';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
-import { API_URL } from '@/lib/constants';
+import { API_URL, AUTH_TOKEN_KEY } from '@/lib/constants';
 
 interface TinderEvent {
-  id: string;
+  _id?: string; // MongoDB ID
+  id?: string;  // Generic ID (fallback)
   title: string;
   description: string;
   type: 'study-session' | 'group-meeting' | 'exam' | 'workshop' | 'seminar' | 'deadline';
@@ -51,25 +60,33 @@ const typeLabels = {
 export function TinderEvents({ events }: TinderEventsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right' | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
 
   const currentEvent = events[currentIndex];
 
   const trackInteraction = async (action: 'interested' | 'skipped') => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
         console.warn('No authentication token found');
         return;
       }
 
-      await fetch(`${API_URL}/activity-interactions`, {
+      // Support both _id (MongoDB) and id formats
+      const eventId = currentEvent._id || currentEvent.id;
+      if (!eventId) {
+        console.error('Event ID not found');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/activity-interactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          activityId: currentEvent.id,
+          activityId: eventId,
           activityType: 'event',
           action: action,
           source: 'tinder-swipe',
@@ -80,21 +97,31 @@ export function TinderEvents({ events }: TinderEventsProps) {
           },
         }),
       });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        console.error('Failed to track interaction:', result.message);
+      } else {
+        console.log('Interaction tracked successfully:', action);
+      }
     } catch (error) {
       console.error('Failed to track interaction:', error);
-      // Don't show error to user, just log it
+      // Don't block the UI flow even if tracking fails
     }
   };
 
   const handleSwipe = async (liked: boolean) => {
     setDirection(liked ? 'right' : 'left');
     
-    // Track the interaction
-    await trackInteraction(liked ? 'interested' : 'skipped');
+    // Track the interaction (don't wait for it)
+    trackInteraction(liked ? 'interested' : 'skipped');
     
     setTimeout(() => {
       if (liked) {
-        toast.success(`Đã quan tâm: ${currentEvent.title}`);
+        toast.success(`Đã lưu quan tâm: ${currentEvent.title}`, {
+          description: 'Xem tại trang "Sự kiện quan tâm"',
+        });
       } else {
         toast.info('Đã bỏ qua sự kiện');
       }
@@ -103,7 +130,9 @@ export function TinderEvents({ events }: TinderEventsProps) {
         setCurrentIndex(currentIndex + 1);
         setDirection(null);
       } else {
-        toast.info('Đã xem hết tất cả sự kiện!');
+        toast.info('Đã xem hết tất cả sự kiện!', {
+          description: 'Quay lại sau để khám phá thêm',
+        });
       }
     }, 300);
   };
@@ -142,6 +171,7 @@ export function TinderEvents({ events }: TinderEventsProps) {
 
         {/* Current card */}
         <Card
+          key={currentEvent._id || currentEvent.id} 
           className={`absolute inset-0 transition-all duration-300 overflow-hidden ${
             direction === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' :
             direction === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' :
@@ -211,7 +241,6 @@ export function TinderEvents({ events }: TinderEventsProps) {
           </div>
         </Card>
       </div>
-
       {/* Action Buttons */}
       <div className="flex items-center justify-center gap-4">
         <Button
@@ -227,6 +256,7 @@ export function TinderEvents({ events }: TinderEventsProps) {
           size="lg"
           variant="outline"
           className="h-14 w-14 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-50"
+          onClick={() => setShowInfo(true)}
         >
           <Info className="h-6 w-6" />
         </Button>
@@ -253,6 +283,136 @@ export function TinderEvents({ events }: TinderEventsProps) {
           style={{ width: `${((currentIndex + 1) / events.length) * 100}%` }}
         />
       </div>
+      {/* View Interested Events Link */}
+      <div className="mt-4 text-center">
+        <a 
+          href="/events/interested" 
+          className="text-sm text-[#6059f7] hover:underline inline-flex items-center gap-2"
+        >
+          <Heart className="h-4 w-4" />
+          Xem sự kiện đã quan tâm
+        </a>
+      </div>
+
+      {/* Info Dialog */}
+      <Dialog open={showInfo} onOpenChange={setShowInfo}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{currentEvent.title}</DialogTitle>
+            <DialogDescription>
+              <Badge className={`${typeColors[currentEvent.type]} border-2 mt-2`}>
+                {typeLabels[currentEvent.type]}
+              </Badge>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Event Image */}
+            <div className="relative w-full h-64 rounded-lg overflow-hidden">
+              <Image
+                src={currentEvent.image}
+                alt={currentEvent.title}
+                fill
+                className="object-cover"
+              />
+            </div>
+
+            {/* Event Details */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Ngày & Giờ</p>
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(currentEvent.date), 'EEEE, dd/MM/yyyy', { locale: viLocale })} - {currentEvent.time}
+                  </p>
+                </div>
+              </div>
+
+              {currentEvent.location && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Địa điểm</p>
+                    <p className="text-sm text-muted-foreground">{currentEvent.location}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Người tổ chức</p>
+                  <p className="text-sm text-muted-foreground">{currentEvent.organizer}</p>
+                </div>
+              </div>
+
+              {currentEvent.participants !== undefined && (
+                <div className="flex items-start gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Số lượng tham gia</p>
+                    <p className="text-sm text-muted-foreground">
+                      {currentEvent.participants}
+                      {currentEvent.maxParticipants && ` / ${currentEvent.maxParticipants}`} người
+                      {currentEvent.maxParticipants && currentEvent.participants >= currentEvent.maxParticipants && 
+                        <span className="text-red-500 ml-2">(Đã đầy)</span>
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <p className="font-medium mb-2">Mô tả</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {currentEvent.description}
+              </p>
+            </div>
+
+            {/* Tags */}
+            {currentEvent.tags.length > 0 && (
+              <div>
+                <p className="font-medium mb-2">Chủ đề</p>
+                <div className="flex flex-wrap gap-2">
+                  {currentEvent.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  setShowInfo(false);
+                  handleSwipe(true);
+                }}
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                Quan tâm
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowInfo(false);
+                  handleSwipe(false);
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Bỏ qua
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

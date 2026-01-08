@@ -27,6 +27,7 @@ import Competition from './Competition';
 import CompetitionTeam from './CompetitionTeam';
 import DashboardWidget from './DashboardWidget';
 import Category from './Category';
+import UserActivityInteraction from './UserActivityInteraction';
 
 // Export all models
 export {
@@ -58,6 +59,7 @@ export {
   CompetitionTeam,
   DashboardWidget,
   Category,
+  UserActivityInteraction,
 };
 
 // Helper function to ensure all models are registered
