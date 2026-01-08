@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IEvent extends Document {
   title: string;
   description: string;
-  type: 'competition' | 'study-session' | 'group-meeting' | 'exam' | 'workshop';
+  type: 'study-session' | 'group-meeting' | 'exam' | 'workshop' | 'seminar';
   date: Date;
   time: string;
   location: string;
@@ -32,7 +32,7 @@ const eventSchema = new Schema<IEvent>(
     },
     type: {
       type: String,
-      enum: ['competition', 'study-session', 'group-meeting', 'exam', 'workshop'],
+      enum: ['study-session', 'group-meeting', 'exam', 'workshop', 'seminar'],
       required: true,
     },
     date: {

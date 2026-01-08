@@ -9,12 +9,13 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { vi } from '@/lib/i18n/vi';
+import { API_URL } from '@/lib/constants';
 
 interface TinderEvent {
   id: string;
   title: string;
   description: string;
-  type: 'competition' | 'study-session' | 'group-meeting' | 'exam' | 'deadline';
+  type: 'study-session' | 'group-meeting' | 'exam' | 'workshop' | 'seminar' | 'deadline';
   date: string;
   time: string;
   location?: string;
@@ -30,18 +31,20 @@ interface TinderEventsProps {
 }
 
 const typeColors = {
-  'competition': 'bg-orange-100 text-orange-800 border-orange-300',
   'study-session': 'bg-blue-100 text-blue-800 border-blue-300',
   'group-meeting': 'bg-purple-100 text-purple-800 border-purple-300',
   'exam': 'bg-red-100 text-red-800 border-red-300',
+  'workshop': 'bg-green-100 text-green-800 border-green-300',
+  'seminar': 'bg-indigo-100 text-indigo-800 border-indigo-300',
   'deadline': 'bg-yellow-100 text-yellow-800 border-yellow-300',
 };
 
 const typeLabels = {
-  'competition': 'Cuộc thi',
   'study-session': 'Phiên học',
   'group-meeting': 'Họp nhóm',
   'exam': 'Thi cử',
+  'workshop': 'Workshop',
+  'seminar': 'Hội thảo',
   'deadline': 'Hạn chót',
 };
 
@@ -51,8 +54,43 @@ export function TinderEvents({ events }: TinderEventsProps) {
 
   const currentEvent = events[currentIndex];
 
-  const handleSwipe = (liked: boolean) => {
+  const trackInteraction = async (action: 'interested' | 'skipped') => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.warn('No authentication token found');
+        return;
+      }
+
+      await fetch(`${API_URL}/activity-interactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          activityId: currentEvent.id,
+          activityType: 'event',
+          action: action,
+          source: 'tinder-swipe',
+          metadata: {
+            swipeDirection: action === 'interested' ? 'right' : 'left',
+            eventType: currentEvent.type,
+            eventTitle: currentEvent.title,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track interaction:', error);
+      // Don't show error to user, just log it
+    }
+  };
+
+  const handleSwipe = async (liked: boolean) => {
     setDirection(liked ? 'right' : 'left');
+    
+    // Track the interaction
+    await trackInteraction(liked ? 'interested' : 'skipped');
     
     setTimeout(() => {
       if (liked) {

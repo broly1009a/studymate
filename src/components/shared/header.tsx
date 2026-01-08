@@ -35,6 +35,12 @@ export function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Fix hydration mismatch - only check pathname after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch pending partner requests count
   useEffect(() => {
@@ -148,11 +154,12 @@ export function Header() {
               href="/messages"
               className={cn(
                 "p-2 rounded-lg transition-all",
-                pathname === '/messages' || pathname.startsWith('/messages/')
+                mounted && (pathname === '/messages' || pathname.startsWith('/messages/'))
                   ? "bg-[#6059f7] text-white"
                   : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
               )}
               title="Tin nhắn"
+              suppressHydrationWarning
             >
               <MessageCircle className="w-5 h-5" />
             </Link>
@@ -161,11 +168,12 @@ export function Header() {
               href="/partner-requests"
               className={cn(
                 "p-2 rounded-lg transition-all relative",
-                pathname === '/partner-requests' || pathname.startsWith('/partner-requests/')
+                mounted && (pathname === '/partner-requests' || pathname.startsWith('/partner-requests/'))
                   ? "bg-[#6059f7] text-white"
                   : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
               )}
               title="Yêu cầu học cùng"
+              suppressHydrationWarning
             >
               <UserPlus className="w-5 h-5" />
               {pendingRequestsCount > 0 && (

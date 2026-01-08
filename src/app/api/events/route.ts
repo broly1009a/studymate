@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Event from '@/models/Event';
 import connectDB from '@/lib/mongodb';
+import { verifyToken } from '@/lib/api/auth';
+import User from '@/models/User';
 
 export async function GET(req: NextRequest) {
   try {
@@ -56,10 +58,37 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const body = await req.json();
-    const { title, description, type, date, time, location, image, organizer, tags, maxParticipants } = body;
+    // Authentication check
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, message: 'Unauthorized - Authentication required' },
+        { status: 401 }
+      );
+    }
 
-    if (!title || !description || !type || !date || !time || !location || !organizer) {
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const body = await req.json();
+    const { title, description, type, date, time, location, image, tags, maxParticipants } = body;
+
+    if (!title || !description || !type || !date || !time || !location) {
       return NextResponse.json(
         { success: false, message: 'Missing required fields' },
         { status: 400 }
@@ -74,7 +103,7 @@ export async function POST(req: NextRequest) {
       time,
       location,
       image,
-      organizer,
+      organizer: user.fullName || user.username, // Use authenticated user's name
       tags: tags || [],
       maxParticipants,
     });

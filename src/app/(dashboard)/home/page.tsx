@@ -173,8 +173,8 @@ export default function HomePage() {
 
   const stats = {
     totalEvents: events.length,
-    competitions: events.filter((e) => e.type === 'competition').length,
     studySessions: events.filter((e) => e.type === 'study-session').length,
+    workshops: events.filter((e) => e.type === 'workshop').length,
     meetings: events.filter((e) => e.type === 'group-meeting').length,
   };
 
