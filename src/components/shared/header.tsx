@@ -42,6 +42,20 @@ export function Header() {
       .slice(0, 2);
   };
 
+  const getAvatarUrl = () => {
+    // console.log('Fetching avatar URL for user:', user);
+    if (user?.avatar) {
+      // console.log('User avatar found:', user.avatar);
+      return user.avatar;
+    }
+    if (user?.profileImages && user.profileImages.length > 0) {
+      // console.log('Using profile image as avatar:', user.profileImages[0].url);
+      return user.profileImages[0]?.url;
+    }
+   // console.log('No avatar or profile images found for user.');
+    return undefined;
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
       <div className="w-full flex h-16 items-center justify-between px-6">
@@ -127,7 +141,11 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-[#6059f7] hover:ring-offset-2 transition-all">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={user?.avatar} alt={user?.fullName} />
+                  <AvatarImage 
+                    src={getAvatarUrl()} 
+                    alt={user?.fullName}
+                    className="object-cover"
+                  />
                   <AvatarFallback className="bg-[#6059f7] text-white font-semibold">
                     {user?.fullName ? getInitials(user.fullName) : 'U'}
                   </AvatarFallback>

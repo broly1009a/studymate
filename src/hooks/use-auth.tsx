@@ -120,6 +120,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) return;
+
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const data = await response.json();
+      const updatedUser = data.user;
+
+      // Update both state and localStorage
+      setUser(updatedUser);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Refresh user error:', error);
+    }
+  }, []);
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -128,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

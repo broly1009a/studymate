@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ export default function OnboardingPage() {
   const [onboardingData, setOnboardingData] = useState<any>({});
   const [profileImages, setProfileImages] = useState<ProfileImageData[]>([]);
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, refreshUser } = useAuth();
 
   const handleNext = (data: any) => {
     setOnboardingData({ ...onboardingData, ...data });
@@ -125,8 +125,8 @@ export default function OnboardingPage() {
         throw new Error('Failed to update profile');
       }
 
-      // Update user in context
-      updateUser({ ...payload });
+      // Refresh user data from API to get updated avatar and profileImages
+      await refreshUser();
 
       toast.success('Thiết lập hồ sơ hoàn tất!');
       router.push('/home');
@@ -176,10 +176,8 @@ export default function OnboardingPage() {
 
 // Step 1: Basic Info + Profile Pictures
 function Step1({ onNext, defaultValues, profileImages, setProfileImages }: any) {
+    const [showGender, setShowGender] = useState(false);
   const { uploadImage, deleteImage, validateImage, isUploading } = useImageUpload();
-  const fileInputRefs = Array(6)
-    .fill(null)
-    .map(() => ({ current: null as HTMLInputElement | null }));
 
   const form = useForm<OnboardingStep1Data>({
     resolver: zodResolver(onboardingStep1Schema),
@@ -220,6 +218,8 @@ function Step1({ onNext, defaultValues, profileImages, setProfileImages }: any) 
   };
 
   const triggerFileInput = (index: number) => {
+    if (isUploading) return;
+    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
@@ -367,8 +367,12 @@ function Step1({ onNext, defaultValues, profileImages, setProfileImages }: any) 
               )}
             />
 
-            <div className="flex items-center space-x-2">
-              <Checkbox id="showGender" />
+            <div className="flex items-center space-x-2" suppressHydrationWarning>
+              <Checkbox
+                id="showGender"
+                checked={showGender}
+                onCheckedChange={checked => setShowGender(checked === true)}
+              />
               <Label htmlFor="showGender" className="text-sm text-gray-600 font-normal cursor-pointer">
                 Hiển thị giới tính trên hồ sơ của tôi
               </Label>
@@ -482,9 +486,7 @@ function Step1({ onNext, defaultValues, profileImages, setProfileImages }: any) 
 
 // Step 2: Education & Learning Needs
 function Step2({ onNext, onBack, defaultValues }: any) {
-  const [selectedNeeds, setSelectedNeeds] = useState<string[]>(defaultValues.learningNeeds || []);
   const [availableMajors, setAvailableMajors] = useState<readonly string[]>([]);
-
   const form = useForm<OnboardingStep2Data>({
     resolver: zodResolver(onboardingStep2Schema),
     defaultValues: {
@@ -493,12 +495,12 @@ function Step2({ onNext, onBack, defaultValues }: any) {
       learningNeeds: defaultValues.learningNeeds || [],
     },
   });
-
+  // Sử dụng useWatch để lấy giá trị learningNeeds một lần, không gây re-render vô hạn
+  const selectedNeeds = useWatch({ control: form.control, name: 'learningNeeds' }) || [];
   const toggleNeed = (need: string) => {
     const updated = selectedNeeds.includes(need)
-      ? selectedNeeds.filter((n) => n !== need)
+      ? selectedNeeds.filter((n: string) => n !== need)
       : [...selectedNeeds, need];
-    setSelectedNeeds(updated);
     form.setValue('learningNeeds', updated);
   };
 
@@ -590,7 +592,6 @@ function Step2({ onNext, onBack, defaultValues }: any) {
                 {LEARNING_NEEDS.map((need) => (
                   <div
                     key={need}
-                    onClick={() => toggleNeed(need)}
                     className={cn(
                       'p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md',
                       selectedNeeds.includes(need)
@@ -598,13 +599,15 @@ function Step2({ onNext, onBack, defaultValues }: any) {
                         : 'border-gray-200 hover:border-blue-300'
                     )}
                   >
-                    <div className="flex items-start gap-3">
+                    <label htmlFor={`need-${need}`} className="flex items-start gap-3 cursor-pointer">
                       <Checkbox
+                        id={`need-${need}`}
                         checked={selectedNeeds.includes(need)}
+                        onCheckedChange={() => toggleNeed(need)}
                         className="mt-0.5"
                       />
                       <span className="text-sm text-gray-700">{need}</span>
-                    </div>
+                    </label>
                   </div>
                 ))}
               </div>
@@ -636,9 +639,6 @@ function Step2({ onNext, onBack, defaultValues }: any) {
 
 // Step 3: Learning Goals & Study Habits
 function Step3({ onNext, onBack, defaultValues }: any) {
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(defaultValues.learningGoals || []);
-  const [selectedHabits, setSelectedHabits] = useState<string[]>(defaultValues.studyHabits || []);
-
   const form = useForm<OnboardingStep3Data>({
     resolver: zodResolver(onboardingStep3Schema),
     defaultValues: {
@@ -648,19 +648,21 @@ function Step3({ onNext, onBack, defaultValues }: any) {
     },
   });
 
+  // Sử dụng useWatch để lấy giá trị, tránh vòng lặp vô hạn
+  const selectedGoals = useWatch({ control: form.control, name: 'learningGoals' }) || [];
+  const selectedHabits = useWatch({ control: form.control, name: 'studyHabits' }) || [];
+
   const toggleGoal = (goal: string) => {
     const updated = selectedGoals.includes(goal)
-      ? selectedGoals.filter((g) => g !== goal)
+      ? selectedGoals.filter((g: string) => g !== goal)
       : [...selectedGoals, goal];
-    setSelectedGoals(updated);
     form.setValue('learningGoals', updated);
   };
 
   const toggleHabit = (habit: string) => {
     const updated = selectedHabits.includes(habit)
-      ? selectedHabits.filter((h) => h !== habit)
+      ? selectedHabits.filter((h: string) => h !== habit)
       : [...selectedHabits, habit];
-    setSelectedHabits(updated);
     form.setValue('studyHabits', updated);
   };
 
@@ -686,7 +688,6 @@ function Step3({ onNext, onBack, defaultValues }: any) {
                 {LEARNING_GOALS.map((goal) => (
                   <div
                     key={goal}
-                    onClick={() => toggleGoal(goal)}
                     className={cn(
                       'p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md',
                       selectedGoals.includes(goal)
@@ -694,13 +695,15 @@ function Step3({ onNext, onBack, defaultValues }: any) {
                         : 'border-gray-200 hover:border-purple-300'
                     )}
                   >
-                    <div className="flex items-start gap-3">
+                    <label htmlFor={`goal-${goal}`} className="flex items-start gap-3 cursor-pointer">
                       <Checkbox
+                        id={`goal-${goal}`}
                         checked={selectedGoals.includes(goal)}
+                        onCheckedChange={() => toggleGoal(goal)}
                         className="mt-0.5"
                       />
                       <span className="text-sm text-gray-700">{goal}</span>
-                    </div>
+                    </label>
                   </div>
                 ))}
               </div>
@@ -721,7 +724,6 @@ function Step3({ onNext, onBack, defaultValues }: any) {
                 {STUDY_HABITS.map((habit) => (
                   <div
                     key={habit}
-                    onClick={() => toggleHabit(habit)}
                     className={cn(
                       'p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md',
                       selectedHabits.includes(habit)
@@ -729,13 +731,15 @@ function Step3({ onNext, onBack, defaultValues }: any) {
                         : 'border-gray-200 hover:border-green-300'
                     )}
                   >
-                    <div className="flex items-start gap-3">
+                    <label htmlFor={`habit-${habit}`} className="flex items-start gap-3 cursor-pointer">
                       <Checkbox
+                        id={`habit-${habit}`}
                         checked={selectedHabits.includes(habit)}
+                        onCheckedChange={() => toggleHabit(habit)}
                         className="mt-0.5"
                       />
                       <span className="text-sm text-gray-700">{habit}</span>
-                    </div>
+                    </label>
                   </div>
                 ))}
               </div>

@@ -7,6 +7,9 @@ import { ProfileSkills } from '@/components/profile/profile-skills';
 import { ProfileEducation } from '@/components/profile/profile-education';
 import { ProfileBadges } from '@/components/profile/profile-badges';
 import { ProfileActivities } from '@/components/profile/profile-activities';
+import { ProfileImages } from '@/components/profile/profile-images';
+import { ProfilePreferences } from '@/components/profile/profile-preferences';
+import { ProfileAccomplishments } from '@/components/profile/profile-accomplishments';
 import { useAuth } from '@/hooks/use-auth';
 import { getUserProfile, getUserActivities } from '@/lib/api/profile-client';
 import { ProfileAchievements } from './profile-achievements';
@@ -81,13 +84,25 @@ export default function ProfilePage() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             <ProfileStats statistics={profile.statistics} />
+            <ProfilePreferences
+              learningNeeds={profile.learningNeeds}
+              learningGoals={profile.learningGoals}
+              studyHabits={profile.studyHabits}
+              mbtiType={profile.mbtiType}
+            />
             <ProfileBadges badges={profile.badges} />
             <ProfileActivities activities={activities} />
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
+            <ProfileImages images={profile.profileImages} isOwnProfile={true} />
             <ProfileEducation education={profile.education} />
+            <ProfileAccomplishments
+              gpa={profile.gpa}
+              certificates={profile.certificates}
+              awards={profile.awards}
+            />
             <ProfileAchievements />
             <ProfileSkills skills={profile.skills} />
           </div>

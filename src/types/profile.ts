@@ -8,7 +8,17 @@ export interface UserProfile {
   avatar?: string;
   coverPhoto?: string;
   bio?: string;
+  profileImages?: ProfileImage[];
+  dateOfBirth?: string;
+  gender?: 'male' | 'female' | 'other';
   education: Education;
+  learningNeeds?: string[];
+  learningGoals?: string[];
+  studyHabits?: string[];
+  mbtiType?: string;
+  gpa?: string;
+  certificates?: string[];
+  awards?: string[];
   skills: Skill[];
   languages: Language[];
   statistics: UserStatistics;
@@ -16,6 +26,12 @@ export interface UserProfile {
   reputation: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProfileImage {
+  url: string;
+  publicId: string;
+  order: number;
 }
 
 export interface Education {

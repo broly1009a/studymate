@@ -14,16 +14,22 @@ import { toast } from 'sonner';
 import { UserProfile } from '@/types/profile';
 import { AvatarUpload } from './avatar-upload';
 import { SkillsManager } from './skills-manager';
+import { PreferencesManager } from './preferences-manager';
+import { ProfileImagesManager } from './profile-images-manager';
 import { Save, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
+import { AUTH_TOKEN_KEY } from '@/lib/constants';
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
   institution: z.string().min(2, 'Institution is required'),
   level: z.enum(['high_school', 'undergraduate', 'graduate', 'postgraduate', 'other']),
   major: z.string().optional(),
   graduationYear: z.number().min(1900).max(2100).optional(),
+  mbtiType: z.string().optional(),
+  gpa: z.string().optional(),
   github: z.string().url().optional().or(z.literal('')),
   linkedin: z.string().url().optional().or(z.literal('')),
   twitter: z.string().url().optional().or(z.literal('')),
@@ -41,7 +47,13 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [coverPhoto, setCoverPhoto] = useState(profile.coverPhoto);
+  const [profileImages, setProfileImages] = useState(profile.profileImages || []);
   const [skills, setSkills] = useState(profile.skills);
+  const [preferences, setPreferences] = useState({
+    learningNeeds: profile.learningNeeds || [],
+    learningGoals: profile.learningGoals || [],
+    studyHabits: profile.studyHabits || [],
+  });
 
   const {
     register,
@@ -53,10 +65,16 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
     defaultValues: {
       fullName: profile.fullName,
       bio: profile.bio || '',
+      dateOfBirth: profile.dateOfBirth 
+        ? new Date(profile.dateOfBirth).toISOString().split('T')[0] 
+        : '',
+      gender: profile.gender,
       institution: profile.education.institution,
       level: profile.education.level,
       major: profile.education.major || '',
       graduationYear: profile.education.graduationYear,
+      mbtiType: profile.mbtiType || '',
+      gpa: profile.gpa || '',
       github: '',
       linkedin: '',
       twitter: '',
@@ -68,26 +86,32 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
     setIsSubmitting(true);
     
     try {
-      const token = localStorage.getItem('auth-token');
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
         toast.error('No authentication token found');
         return;
       }
 
-      // Import updateUserProfile for API call
       const { updateUserProfile } = await import('@/lib/api/profile-client');
-
       const updateData = {
         ...data,
         avatar,
         coverPhoto,
+        profileImages,
         skills,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
         education: {
           level: data.level,
           institution: data.institution,
           major: data.major || '',
           graduationYear: data.graduationYear,
         },
+        learningNeeds: preferences.learningNeeds,
+        learningGoals: preferences.learningGoals,
+        studyHabits: preferences.studyHabits,
+        mbtiType: data.mbtiType,
+        gpa: data.gpa,
         socialLinks: {
           github: data.github || '',
           linkedin: data.linkedin || '',
@@ -140,6 +164,20 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
         </CardContent>
       </Card>
 
+      {/* Profile Images */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Images</CardTitle>
+          <CardDescription>Manage your 6 profile images</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileImagesManager
+            images={profileImages}
+            onImagesChange={setProfileImages}
+          />
+        </CardContent>
+      </Card>
+
       {/* Basic Info */}
       <Card>
         <CardHeader>
@@ -157,6 +195,32 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
             {errors.fullName && (
               <p className="text-sm text-destructive mt-1">{errors.fullName.message}</p>
             )}
+          </div>
+
+          <div>
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              {...register('dateOfBirth')}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="gender">Gender</Label>
+            <Select
+              defaultValue={profile.gender}
+              onValueChange={(value) => setValue('gender', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -241,6 +305,50 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
         </CardHeader>
         <CardContent>
           <SkillsManager skills={skills} onSkillsChange={setSkills} />
+        </CardContent>
+      </Card>
+
+      {/* Learning Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Learning Preferences</CardTitle>
+          <CardDescription>Update your learning needs, goals, and study habits</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PreferencesManager
+            learningNeeds={preferences.learningNeeds}
+            learningGoals={preferences.learningGoals}
+            studyHabits={preferences.studyHabits}
+            onUpdate={setPreferences}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Achievements */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Achievements & Qualifications</CardTitle>
+          <CardDescription>Update your academic achievements</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="mbtiType">MBTI Type</Label>
+            <Input
+              id="mbtiType"
+              {...register('mbtiType')}
+              placeholder="e.g., INTJ, ENFP"
+              maxLength={4}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="gpa">GPA</Label>
+            <Input
+              id="gpa"
+              {...register('gpa')}
+              placeholder="e.g., 3.5-4.0"
+            />
+          </div>
         </CardContent>
       </Card>
 

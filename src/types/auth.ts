@@ -4,6 +4,16 @@ export interface User {
   username: string;
   fullName: string;
   avatar?: string;
+  profileImages?: Array<{
+    url: string;
+    publicId: string;
+    order: number;
+  }>;
+  gender?: 'male' | 'female' | 'other';
+  dateOfBirth?: string;
+  bio?: string;
+  phone?: string;
+  location?: string;
   role: 'student' | 'teacher' | 'admin';
   isEmailVerified: boolean;
   createdAt: string;
@@ -48,6 +58,7 @@ export interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
-  updateUser: (user: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 

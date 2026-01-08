@@ -41,15 +41,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        _id: user._id,
+      user: {
+        id: user._id.toString(),
         email: user.email,
+        username: user.username,
         fullName: user.fullName,
         avatar: user.avatar,
+        profileImages: user.profileImages || [],
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth?.toISOString(),
+        bio: user.bio,
+        phone: user.phone,
+        location: user.location,
         role: user.role,
         isEmailVerified: user.verified,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
       }
     });
   } catch (error) {

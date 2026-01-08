@@ -7,6 +7,7 @@ import { getUserProfile } from '@/lib/api/profile-client';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { vi } from '@/lib/i18n/vi';
+import { AUTH_TOKEN_KEY } from '@/lib/constants';
 import type { UserProfile } from '@/types/profile';
 
 export default function EditProfilePage() {
@@ -20,7 +21,7 @@ export default function EditProfilePage() {
       try {
         if (!user) return;
 
-        const token = localStorage.getItem('auth-token');
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
         if (!token) {
           setError('No authentication token found');
           return;

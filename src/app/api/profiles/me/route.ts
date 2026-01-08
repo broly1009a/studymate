@@ -99,12 +99,24 @@ export async function GET(request: NextRequest) {
       avatar: userProfile.avatar || user.avatar,
       coverPhoto: userProfile.coverPhoto,
       bio: userProfile.bio || user.bio,
+      phone: user.phone,
+      location: user.location,
+      gender: user.gender,
+      dateOfBirth: user.dateOfBirth?.toISOString(),
+      profileImages: user.profileImages || [],
       education: {
         level: userProfile.education?.level,
         institution: userProfile.education?.institution,
         major: userProfile.education?.major,
         graduationYear: userProfile.education?.graduationYear,
       },
+      learningNeeds: userProfile.learningNeeds || [],
+      learningGoals: userProfile.learningGoals || [],
+      studyHabits: userProfile.studyHabits || [],
+      mbtiType: userProfile.mbtiType,
+      gpa: userProfile.gpa,
+      certificates: userProfile.certificates || [],
+      awards: userProfile.awards || [],
       skills: skills.map(skill => ({
         id: skill._id.toString(),
         name: skill.name,
@@ -129,6 +141,7 @@ export async function GET(request: NextRequest) {
         twitter: '',
         website: userProfile.website || '',
       },
+      reputation: userProfile.reputation || user.reputation || 0,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     };
@@ -182,7 +195,16 @@ export async function POST(request: NextRequest) {
     if (body.phone) userUpdates.phone = body.phone;
     if (body.location) userUpdates.location = body.location;
     if (body.gender) userUpdates.gender = body.gender;
-    if (body.dateOfBirth) userUpdates.dateOfBirth = body.dateOfBirth;
+    
+    // Handle dateOfBirth - convert string to Date if needed
+    if (body.dateOfBirth) {
+      if (typeof body.dateOfBirth === 'string') {
+        userUpdates.dateOfBirth = new Date(body.dateOfBirth);
+      } else {
+        userUpdates.dateOfBirth = body.dateOfBirth;
+      }
+    }
+    
     if (body.profileImages) userUpdates.profileImages = body.profileImages;
 
     if (Object.keys(userUpdates).length > 0) {
@@ -261,12 +283,24 @@ export async function POST(request: NextRequest) {
       avatar: userProfile.avatar || user!.avatar,
       coverPhoto: userProfile.coverPhoto,
       bio: userProfile.bio || user!.bio,
+      phone: user!.phone,
+      location: user!.location,
+      gender: user!.gender,
+      dateOfBirth: user!.dateOfBirth?.toISOString(),
+      profileImages: user!.profileImages || [],
       education: {
         level: userProfile.education?.level,
         institution: userProfile.education?.institution,
         major: userProfile.education?.major,
         graduationYear: userProfile.education?.graduationYear,
       },
+      learningNeeds: userProfile.learningNeeds || [],
+      learningGoals: userProfile.learningGoals || [],
+      studyHabits: userProfile.studyHabits || [],
+      mbtiType: userProfile.mbtiType,
+      gpa: userProfile.gpa,
+      certificates: userProfile.certificates || [],
+      awards: userProfile.awards || [],
       skills: skills.map(skill => ({
         id: skill._id.toString(),
         name: skill.name,
@@ -291,6 +325,7 @@ export async function POST(request: NextRequest) {
         twitter: '',
         website: userProfile.website || '',
       },
+      reputation: userProfile.reputation || user!.reputation || 0,
       createdAt: user!.createdAt.toISOString(),
       updatedAt: user!.updatedAt.toISOString(),
     };

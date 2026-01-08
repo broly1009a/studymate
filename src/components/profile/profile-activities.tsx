@@ -38,27 +38,31 @@ export function ProfileActivities({ activities }: ProfileActivitiesProps) {
         <CardTitle>Hoạt động gần đây</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const Icon = activityIcons[activity.type];
-            const colorClass = activityColors[activity.type];
+        {activities.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Chưa có hoạt động nào</p>
+        ) : (
+          <div className="space-y-4">
+            {activities.map((activity) => {
+              const Icon = activityIcons[activity.type] || Clock;
+              const colorClass = activityColors[activity.type] || 'text-gray-500 bg-gray-500/10';
 
-            return (
-              <div key={activity.id} className="flex gap-3">
-                <div className={`p-2 rounded-lg ${colorClass} h-fit`}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">{activity.title}</div>
-                  <div className="text-sm text-muted-foreground">{activity.description}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+              return (
+                <div key={activity.id} className="flex gap-3">
+                  <div className={`p-2 rounded-lg ${colorClass} h-fit`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{activity.title}</div>
+                    <div className="text-sm text-muted-foreground">{activity.description}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
