@@ -231,7 +231,10 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-2xl">{partner.name}</CardTitle>
+                      <CardTitle className="text-2xl">{partner.name}, {partner.age}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {partner.university} • {partner.major}
+                      </p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center gap-1">
                           <Star className="h-5 w-5 fill-yellow-500 text-yellow-500" />
@@ -322,11 +325,11 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
             </CardContent>
           </Card>
 
-          {/* Subjects */}
+          {/* Learning Needs (Subjects) */}
           <Card>
             <CardHeader>
-              <CardTitle>Môn học</CardTitle>
-              <CardDescription>Lĩnh vực chuyên môn và sở thích học tập</CardDescription>
+              <CardTitle>Nhu cầu học tập</CardTitle>
+              <CardDescription>Lĩnh vực và môn học cần tìm bạn học</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -339,11 +342,11 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
             </CardContent>
           </Card>
 
-          {/* Study Style */}
+          {/* Study Habits */}
           <Card>
             <CardHeader>
-              <CardTitle>Phong cách học tập</CardTitle>
-              <CardDescription>Cách tiếp cận học tập ưa thích</CardDescription>
+              <CardTitle>Thói quen học tập</CardTitle>
+              <CardDescription>Cách tiếp cận và thói quen học tập</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -360,7 +363,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
           <Card>
             <CardHeader>
               <CardTitle>Mục tiêu học tập</CardTitle>
-              <CardDescription>Những gì họ đang hướng tới</CardDescription>
+              <CardDescription>Những mục tiêu đang hướng tới</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
@@ -375,22 +378,24 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
           </Card>
 
           {/* Availability */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Thời gian rảnh</CardTitle>
-              <CardDescription>Thời gian học điển hình</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {partner.availability.map((time, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    {time}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {partner.availability && partner.availability.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Thời gian rảnh</CardTitle>
+                <CardDescription>Thời gian học điển hình</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {partner.availability.map((time, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      {time}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar */}

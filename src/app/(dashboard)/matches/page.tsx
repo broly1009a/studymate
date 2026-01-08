@@ -15,7 +15,8 @@ export default function FindPartnersPage() {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [selectedPartners, setSelectedPartners] = useState<string[]>([]);
-  const [industryFilter, setIndustryFilter] = useState('all');
+  const [universityFilter, setUniversityFilter] = useState('all');
+  const [majorFilter, setMajorFilter] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,7 +49,25 @@ export default function FindPartnersPage() {
           params.append('minRating', ratingFilter);
         }
 
-        const response = await fetch(`/api/partners?${params.toString()}`);
+        if (universityFilter !== 'all') {
+          params.append('university', universityFilter);
+        }
+
+        if (majorFilter !== 'all') {
+          params.append('major', majorFilter);
+        }
+
+        // Add auth token for match scoring
+        const token = localStorage.getItem('studymate_auth_token');
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/partners?${params.toString()}`, { headers });
         const data = await response.json();
 
         if (data.success) {
@@ -64,7 +83,7 @@ export default function FindPartnersPage() {
 
     const debounceTimer = setTimeout(fetchPartners, 300);
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, subjectFilter, ratingFilter, page]);
+  }, [searchQuery, subjectFilter, ratingFilter, universityFilter, majorFilter, page]);
 
   // Fetch stats from API
   useEffect(() => {
@@ -84,35 +103,46 @@ export default function FindPartnersPage() {
     fetchStats();
   }, []);
 
-  // Khan Academy style categories
+  // Khan Academy style categories - Updated for Learning Needs
   const mainCategories = [
     {
-      id: 'economics-management',
-      name: 'Khối ngành Kinh tế – Quản trị',
-      description: 'Quản trị kinh doanh, Marketing, Tài chính',
+      id: 'learning-needs',
+      name: 'Nhu cầu học tập',
+      description: 'Tìm kiếm theo nhu cầu học tập',
       subcategories: [
-        { id: 'business-admin', name: 'Quản trị Kinh doanh' },
-        { id: 'marketing', name: 'Marketing' },
-        { id: 'finance', name: 'Tài chính' },
+        { id: 'subject-partner', name: 'Tìm bạn đồng hành học môn' },
+        { id: 'coding-practice', name: 'Luyện coding / giải thuật' },
+        { id: 'project-collaboration', name: 'Làm đồ án / dự án chung' },
+        { id: 'exam-prep', name: 'Ôn thi / kiểm tra' },
+        { id: 'internship-prep', name: 'Chuẩn bị đi thực tập' },
+        { id: 'skills-exchange', name: 'Trao đổi kỹ năng' },
       ]
     },
     {
-      id: 'technology-digital',
-      name: 'Khối ngành Công nghệ – Kỹ thuật số',
-      description: 'Kỹ thuật phần mềm, AI, Khoa học dữ liệu',
+      id: 'learning-goals',
+      name: 'Mục tiêu học tập',
+      description: 'Tìm kiếm theo mục tiêu',
       subcategories: [
-        { id: 'software-engineering', name: 'Kỹ thuật Phần mềm' },
-        { id: 'artificial-intelligence', name: 'Trí tuệ Nhân tạo' },
-        { id: 'data-science', name: 'Khoa học Dữ liệu' },
+        { id: 'gpa-improve', name: 'Qua môn / cải thiện GPA' },
+        { id: 'internship-ready', name: 'Chuẩn bị đi thực tập' },
+        { id: 'career-path', name: 'Định hướng nghề nghiệp' },
+        { id: 'research', name: 'Tham gia nghiên cứu khoa học' },
+        { id: 'competition', name: 'Thi Olympic / Hackathon' },
+        { id: 'language-cert', name: 'Lấy chứng chỉ ngoại ngữ' },
       ]
     },
     {
-      id: 'languages-social-media',
-      name: 'Khối ngành Ngôn ngữ – Xã hội – Truyền thông',
-      description: 'Tiếng Anh, Truyền thông đa phương tiện',
+      id: 'universities',
+      name: 'Theo trường đại học',
+      description: 'Tìm bạn cùng trường',
       subcategories: [
-        { id: 'english-language', name: 'Ngôn ngữ Anh' },
-        { id: 'multimedia-communications', name: 'Truyền thông đa phương tiện' },
+        { id: 'fpt', name: 'Đại học FPT' },
+        { id: 'uet', name: 'ĐH Công nghệ – ĐHQGHN' },
+        { id: 'hus', name: 'ĐH Khoa học Tự nhiên – ĐHQGHN' },
+        { id: 'ussh', name: 'ĐH Khoa học xã hội và nhân văn' },
+        { id: 'vnu-ed', name: 'ĐH Giáo dục – ĐHQGHN' },
+        { id: 'vju', name: 'ĐH Việt Nhật' },
+        { id: 'hvtc', name: 'Học viện tài chính' },
       ]
     },
   ];
@@ -172,14 +202,40 @@ export default function FindPartnersPage() {
 
       {/* Search Bar */}
       <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex gap-4 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm kiếm theo tên..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={ratingFilter} onValueChange={setRatingFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Đánh giá" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả đánh giá</SelectItem>
+              <SelectItem value="4">4+ sao</SelectItem>
+              <SelectItem value="3">3+ sao</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={universityFilter} onValueChange={setUniversityFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Trường" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trường</SelectItem>
+              <SelectItem value="Đại học FPT">Đại học FPT</SelectItem>
+              <SelectItem value="ĐH Công nghệ – ĐHQGHN">ĐH Công nghệ</SelectItem>
+              <SelectItem value="ĐH Khoa học Tự nhiên – ĐHQGHN">ĐH Khoa học TN</SelectItem>
+              <SelectItem value="ĐH Khoa học xã hội và nhân văn – ĐHQGHN">ĐH KHXH&NV</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -298,6 +354,9 @@ export default function FindPartnersPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg truncate">{partner.name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {partner.university} • {partner.major}
+                        </p>
                         <div className="flex items-center gap-2 mt-1">
                           <div className="flex items-center gap-1 text-sm">
                             <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
@@ -316,17 +375,33 @@ export default function FindPartnersPage() {
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground line-clamp-2">{partner.bio}</p>
 
-                    {/* Subjects */}
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-2">Môn học</div>
-                      <div className="flex flex-wrap gap-1">
-                        {(partner.subjects || []).slice(0, 3).map((subject: string) => (
-                          <Badge key={subject} variant="secondary" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))}
+                    {/* Learning Needs (Subjects) */}
+                    {partner.subjects && partner.subjects.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-2">Nhu cầu học tập</div>
+                        <div className="flex flex-wrap gap-1">
+                          {partner.subjects.slice(0, 2).map((subject: string) => (
+                            <Badge key={subject} variant="secondary" className="text-xs">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Study Habits */}
+                    {partner.studyStyle && partner.studyStyle.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-2">Thói quen học tập</div>
+                        <div className="flex flex-wrap gap-1">
+                          {partner.studyStyle.slice(0, 2).map((habit: string) => (
+                            <Badge key={habit} variant="outline" className="text-xs">
+                              {habit}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -395,6 +470,8 @@ export default function FindPartnersPage() {
               setSearchQuery('');
               setSubjectFilter('all');
               setRatingFilter('all');
+              setUniversityFilter('all');
+              setMajorFilter('all');
               setIsDropdownOpen(false);
               setActiveCategory(null);
               setPage(1);

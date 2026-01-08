@@ -3,10 +3,92 @@ import { verifyToken } from '@/lib/api/auth';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
 import UserProfile from '@/models/UserProfile';
+import Partner from '@/models/Partner';
 import Badge from '@/models/Badge';
 import StudyStreak from '@/models/StudyStreak';
 import Skill from '@/models/Skill';
 import mongoose from 'mongoose';
+
+/**
+ * Calculate age from date of birth
+ */
+function calculateAge(dateOfBirth: Date): number {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
+/**
+ * Create or update Partner profile from User and UserProfile
+ */
+async function createOrUpdatePartner(
+  userId: string,
+  user: any,
+  userProfile: any
+): Promise<void> {
+  try {
+    // Calculate age from dateOfBirth
+    const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : 18;
+
+    // Get avatar (priority: profileImages[0] > avatar)
+    const avatar = user.profileImages?.length > 0 
+      ? user.profileImages[0].url 
+      : user.avatar || userProfile.avatar;
+
+    // Map subjects from learningNeeds (extract actual subjects)
+    const subjects = userProfile.learningNeeds || [];
+
+    // Prepare partner data
+    const partnerData = {
+      userId: new mongoose.Types.ObjectId(userId),
+      name: user.fullName,
+      avatar: avatar || '',
+      age: age,
+      major: userProfile.education?.major || user.major || '',
+      university: userProfile.education?.institution || user.school || '',
+      bio: userProfile.bio || user.bio || '',
+      subjects: subjects,
+      studyStyle: userProfile.studyHabits || [],
+      goals: userProfile.learningGoals || [],
+      timezone: 'GMT+7',
+      languages: ['Tiếng Việt'],
+      status: 'available', // Set as available when profile is complete
+      availability: [], // Can be added later in profile settings
+    };
+
+    // Upsert (create or update) Partner profile
+    await Partner.findOneAndUpdate(
+      { userId: new mongoose.Types.ObjectId(userId) },
+      { $set: partnerData },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ Partner profile synced for user: ${userId}`);
+  } catch (error) {
+    console.error('❌ Error creating/updating partner:', error);
+    // Don't throw error to prevent blocking profile update
+  }
+}
+
+/**
+ * Check if profile is complete enough to create partner
+ */
+function isProfileComplete(user: any, userProfile: any): boolean {
+  return !!(
+    user.fullName &&
+    user.dateOfBirth &&
+    userProfile.education?.institution &&
+    userProfile.education?.major &&
+    userProfile.learningNeeds?.length > 0
+  );
+}
 
 /**
  * GET /api/profiles/me
@@ -262,6 +344,11 @@ export async function POST(request: NextRequest) {
     const skills = await Skill.find({ userId: decoded.id }).lean();
     const badges = await Badge.find({ userId: decoded.id }).lean();
     const studyStreak = await StudyStreak.findOne({ userId: decoded.id }).lean();
+
+    // Auto-sync Partner profile if profile is complete
+    if (isProfileComplete(user, userProfile)) {
+      await createOrUpdatePartner(decoded.id, user, userProfile);
+    }
 
     const statistics = {
       totalStudyHours: 0,
