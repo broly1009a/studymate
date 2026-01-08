@@ -90,7 +90,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
         if (data.success && data.data) {
           // Find request to this specific partner
           const request = data.data.find(
-            (req: any) => String(req.receiverId) === String(partner._id)
+            (req: any) => String(req.receiverId) === String(partner.userId) // Compare with userId
           );
           if (request) {
             setExistingRequest({
@@ -158,7 +158,7 @@ export default function PartnerDetailPage({ params }: { params: Promise<{ id: st
           senderId: user.id,
           senderName: user.fullName,
           senderAvatar: user.avatar,
-          receiverId: partner?._id || id,
+          receiverId: partner?.userId || id, 
           receiverName: partner?.name,
           receiverAvatar: partner?.avatar,
           message: message.trim(),
