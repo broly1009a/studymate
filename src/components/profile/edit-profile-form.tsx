@@ -19,6 +19,7 @@ import { ProfileImagesManager } from './profile-images-manager';
 import { Save, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AUTH_TOKEN_KEY } from '@/lib/constants';
+import { useAuth } from '@/hooks/use-auth';
 const profileSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
@@ -44,6 +45,7 @@ interface EditProfileFormProps {
 
 export function EditProfileForm({ profile }: EditProfileFormProps) {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatar, setAvatar] = useState(profile.avatar);
   const [coverPhoto, setCoverPhoto] = useState(profile.coverPhoto);
@@ -121,6 +123,8 @@ export function EditProfileForm({ profile }: EditProfileFormProps) {
       };
 
       const response = await updateUserProfile(token, updateData);
+      
+      await refreshUser();
       
       toast.success('Profile updated successfully!');
       router.push('/profile');
