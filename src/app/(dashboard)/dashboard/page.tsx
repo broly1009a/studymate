@@ -1,6 +1,10 @@
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
+import { UserPlus } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FindPartnerCTA } from '@/components/dashboard/find-partner-cta';
 import { StudyStreakCard } from '@/components/dashboard/study-streak-card';
 import { QuickStats } from '@/components/dashboard/quick-stats';
@@ -29,6 +33,7 @@ export default function DashboardPage() {
   const [featuredEvents, setFeaturedEvents] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -96,6 +101,15 @@ export default function DashboardPage() {
           }
         }
 
+        // Fetch pending partner requests
+        const requestsResponse = await fetch(`${API_URL}/partner-requests?userId=${user.id}&type=received&status=pending`);
+        if (requestsResponse.ok) {
+          const requestsData = await requestsResponse.json();
+          if (requestsData.success) {
+            setPendingRequests(requestsData.data);
+          }
+        }
+
         // For now, use mock calculation
         setQuickStats({
           todayStudyTime: 45, // TODO: Calculate from study sessions
@@ -151,6 +165,33 @@ export default function DashboardPage() {
 
       {/* Hero CTA - Tìm bạn học (Eye-catching) */}
       <FindPartnerCTA />
+
+      {/* Partner Requests Notification */}
+      {pendingRequests.length > 0 && (
+        <Card className="border-2 border-[#00a7c1] bg-gradient-to-r from-[#00a7c1]/5 to-[#00a7c1]/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-[#00a7c1]" />
+                Yêu cầu học cùng mới
+              </span>
+              <span className="bg-[#00a7c1] text-white text-sm font-bold px-3 py-1 rounded-full">
+                {pendingRequests.length}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Bạn có {pendingRequests.length} yêu cầu học cùng đang chờ phản hồi
+            </p>
+            <Button asChild className="w-full">
+              <Link href="/partner-requests">
+                Xem tất cả yêu cầu
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 3-Column Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

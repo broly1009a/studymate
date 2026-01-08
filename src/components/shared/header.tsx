@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, LogOut, Settings, Home, Users as UsersIcon, MessageCircle, MessageSquare, UsersRound, Trophy, PenSquare, Crown } from 'lucide-react';
+import { Search, User, LogOut, Settings, Home, Users as UsersIcon, MessageCircle, MessageSquare, UsersRound, Trophy, PenSquare, Crown, UserPlus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,6 +19,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { NotificationBell } from './notification-bell';
 import { vi } from '@/lib/i18n/vi';
 import { cn } from '@/lib/utils';
+import { API_URL } from '@/lib/constants';
 
 // Main navigation items for header
 const mainNavigation = [
@@ -32,6 +34,29 @@ const mainNavigation = [
 export function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  // Fetch pending partner requests count
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/partner-requests?userId=${user.id}&type=received&status=pending`);
+        const data = await response.json();
+        if (data.success) {
+          setPendingRequestsCount(data.data.length);
+        }
+      } catch (error) {
+        console.error('Failed to fetch pending requests count:', error);
+      }
+    };
+
+    fetchPendingCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const getInitials = (name: string) => {
     return name
@@ -117,7 +142,7 @@ export function Header() {
             <span>Premium</span>
           </Link>
 
-          {/* Message Icon */}
+          {/* Message & Partner Requests Icons */}
           <div className="hidden lg:flex items-center gap-1 px-3 border-r">
             <Link
               href="/messages"
@@ -130,6 +155,24 @@ export function Header() {
               title="Tin nhắn"
             >
               <MessageCircle className="w-5 h-5" />
+            </Link>
+            
+            <Link
+              href="/partner-requests"
+              className={cn(
+                "p-2 rounded-lg transition-all relative",
+                pathname === '/partner-requests' || pathname.startsWith('/partner-requests/')
+                  ? "bg-[#6059f7] text-white"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
+              )}
+              title="Yêu cầu học cùng"
+            >
+              <UserPlus className="w-5 h-5" />
+              {pendingRequestsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                  {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+                </span>
+              )}
             </Link>
           </div>
 

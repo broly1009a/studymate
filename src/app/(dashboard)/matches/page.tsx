@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Users, Star, Clock, MessageCircle, ChevronDown, Loader2 } from 'lucide-react';
+import { Search, Users, Star, Clock, MessageCircle, ChevronDown, Loader2, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-
+import { API_URL } from '@/lib/constants';
 export default function FindPartnersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
