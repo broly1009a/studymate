@@ -697,7 +697,7 @@ export default function HomePage() {
       </div>
 
       {/* Chatbot Icon */}
-      <div className="fixed bottom-8 right-8 z-50">
+      {/* <div className="fixed bottom-8 right-8 z-50">
         <Link href="/chat">
           <Button
             size="lg"
@@ -706,7 +706,7 @@ export default function HomePage() {
             <MessageSquare className="h-8 w-8 text-white" />
           </Button>
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -161,10 +161,10 @@ export function LandingPage() {
                                 </div>
                             </div>
 
-                            {/* Floating Chat Icon - Bottom Right */}
+                            {/* Floating Chat Icon - Bottom Right
                             <div className="absolute -bottom-6 -right-6 bg-[#6059f7] text-white p-4 rounded-2xl shadow-2xl z-20">
                                 <MessageSquare className="w-8 h-8" />
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>
