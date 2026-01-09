@@ -9,12 +9,12 @@ import Subject from '@/models/Subject';
 // POST - Complete a study session
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const recordId = params.id;
+    const { id: recordId } = await params;
     const body = await request.json();
     const { userId, notes = '', tags = [], finalFocusScore } = body;
 

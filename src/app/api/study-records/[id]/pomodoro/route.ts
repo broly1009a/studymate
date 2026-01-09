@@ -7,12 +7,12 @@ import User from '@/models/User';
 // POST - Complete a Pomodoro session
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const recordId = params.id;
+    const { id: recordId } = await params;
     const body = await request.json();
     const { userId, focusRating = 80 } = body; // focusRating: 0-100
 
