@@ -7,12 +7,12 @@ import User from '@/models/User';
 // POST - Complete a study session
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const sessionId = params.id;
+    const { id: sessionId } = await params;
     const body = await request.json();
     const userId = body.userId; // Replace with actual auth
 
