@@ -1,4 +1,4 @@
-import { LandingPageV2 } from '@/components/landing/landing-page-v2';
+import { LandingPage } from '@/components/landing/landing-page';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LandingPage() {
-  return <LandingPageV2 />;
+export default function HomePage() {
+  return <LandingPage />;
 }
 
 // Old version kept for reference
