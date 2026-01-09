@@ -40,33 +40,33 @@ export function LandingPage() {
             <Navbar />
 
             {/* Hero Section */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-yellow-50 pt-20 pb-32">
-                <div className="container mx-auto px-4">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-yellow-50 pt-24 pb-20 md:pt-32 md:pb-28">
+                <div className="container mx-auto px-4 md:px-6 lg:px-8">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                         {/* Left Content */}
-                        <div className="space-y-8">
+                        <div className="space-y-6 md:space-y-8">
                             <div className="inline-block">
-                                <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2">
+                                <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 w-fit">
                                     <Trophy className="w-4 h-4" />
                                     Nền tảng kết nối học tập #1 Việt Nam
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+                            <div className="space-y-4 md:space-y-6">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                                     Bạn Học Chuẩn Gu
                                     <br />
                                     <span className="text-[#6059f7]">Học gì cũng dễ</span>
                                 </h1>
-                                <p className="text-lg text-gray-600 max-w-xl">
+                                <p className="text-base md:text-lg text-gray-600 max-w-xl leading-relaxed">
                                     Kết nối bạn học phù hợp, tạo nhóm học tập, chia sẻ tài liệu,
                                     và cùng nhau chinh phục các cuộc thi
                                 </p>
                             </div>
 
-                            <div className="flex flex-wrap gap-4">
+                            <div className="flex flex-wrap gap-4 pt-2">
                                 <Link href="/login">
-                                    <Button size="lg" className="bg-[#6059f7] hover:bg-[#4f47d9] text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all">
+                                    <Button size="lg" className="bg-[#6059f7] hover:bg-[#4f47d9] text-white px-8 py-6 text-base md:text-lg rounded-full shadow-lg hover:shadow-xl transition-all">
                                         Tìm bạn học ngay
                                         <ArrowRight className="ml-2 w-5 h-5" />
                                     </Button>
@@ -74,26 +74,26 @@ export function LandingPage() {
                             </div>
 
                             {/* Quick Stats */}
-                            <div className="grid grid-cols-3 gap-6 pt-8">
+                            <div className="grid grid-cols-3 gap-4 md:gap-6 pt-6 md:pt-8">
                                 <div>
-                                    <div className="text-3xl font-bold text-gray-900">10.000+</div>
-                                    <p className="text-sm text-gray-600">Sinh viên tìm được bạn học phù hợp</p>
+                                    <div className="text-2xl md:text-3xl font-bold text-gray-900">10.000+</div>
+                                    <p className="text-xs md:text-sm text-gray-600 leading-tight mt-1">Sinh viên tìm được bạn học phù hợp</p>
                                 </div>
                                 <div>
-                                    <div className="text-3xl font-bold text-gray-900">5.000+</div>
-                                    <p className="text-sm text-gray-600">Hơi nhóm sinh viên cùng học tập</p>
+                                    <div className="text-2xl md:text-3xl font-bold text-gray-900">5.000+</div>
+                                    <p className="text-xs md:text-sm text-gray-600 leading-tight mt-1">Nhóm sinh viên cùng học tập</p>
                                 </div>
                                 <div>
-                                    <div className="text-3xl font-bold text-gray-900">1.000+</div>
-                                    <p className="text-sm text-gray-600">Cuộc thi được tổ chức thành công</p>
+                                    <div className="text-2xl md:text-3xl font-bold text-gray-900">1.000+</div>
+                                    <p className="text-xs md:text-sm text-gray-600 leading-tight mt-1">Cuộc thi được tổ chức thành công</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Right Content - Image Grid */}
-                        <div className="relative">
+                        <div className="relative mt-12 lg:mt-0">
                             {/* Star decorations */}
-                            <div className="absolute -top-6 -left-6 text-purple-500 animate-pulse z-10">
+                            <div className="absolute -top-6 -left-6 text-purple-500 animate-pulse z-10 hidden md:block">
                                 <svg className="w-12 h-12" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2L9 9L2 12L9 15L12 22L15 15L22 12L15 9L12 2Z" />
                                 </svg>
@@ -171,8 +171,8 @@ export function LandingPage() {
             </section>
 
             {/* Stats Banner */}
-            <section className="bg-gradient-to-r from-[#6059f7] to-purple-600 py-4 overflow-hidden">
-                <div className="container mx-auto px-4">
+            <section className="bg-gradient-to-r from-[#6059f7] to-purple-600 py-6 md:py-8 overflow-hidden">
+                <div className="container mx-auto px-4 md:px-6 lg:px-8">
                     <div className="relative">
                         <div className="flex items-center gap-6 md:gap-8 lg:gap-12 text-white animate-scroll">
                             {/* First set of stats */}
@@ -254,13 +254,13 @@ export function LandingPage() {
             </section>
 
             {/* Features Section */}
-            <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+            <section className="py-16 md:py-20 lg:py-24 bg-gradient-to-br from-purple-50 via-white to-purple-50">
+                <div className="container mx-auto px-4 md:px-6 lg:px-8">
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6">
                             <span className="text-[#6059f7]">Tại sao nên chọn StudyMate?</span>
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-3xl mx-auto">
+                        <p className="text-gray-600 text-base md:text-lg max-w-3xl mx-auto leading-relaxed">
                             Những tính năng kết nối học tập giúp bạn học hiệu quả hơn bao giờ hết!
                         </p>
                     </div>
@@ -315,7 +315,7 @@ export function LandingPage() {
                                         <BookOpen className="w-5 h-5 text-white" />
                                     </div>
                                     <h3 className="text-lg font-semibold text-gray-900">
-                                        Cộng cụ hỗ trợ học tập
+                                        Công cụ hỗ trợ học tập
                                     </h3>
                                 </div>
 
@@ -419,13 +419,13 @@ export function LandingPage() {
             </section>
 
             {/* Community Section */}
-            <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-[#6059f7]">
+            <section className="py-16 md:py-20 lg:py-24 bg-white">
+                <div className="container mx-auto px-4 md:px-6 lg:px-8">
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 text-[#6059f7]">
                             Cơ hội phát triển, tỏa sáng cùng cộng đội
                         </h2>
-                        <p className="text-gray-600 text-base lg:text-lg max-w-4xl mx-auto leading-relaxed">
+                        <p className="text-gray-600 text-base md:text-lg max-w-4xl mx-auto leading-relaxed">
                             StudyMate giúp bạn nhanh chóng tiếp cận các cuộc thi, hackathon,... mở rộng cơ hội phát triển kỹ năng,
                             thử thách bản thân, phối hợp cùng đội nhóm và tích lũy kinh nghiệm CV trở nên nổi bật và ấn tượng hơn.
                         </p>
@@ -568,12 +568,12 @@ export function LandingPage() {
             </section>
 
             {/* Testimonials Section */}
-            <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50 relative overflow-hidden">
-                <div className="container mx-auto px-4 relative z-10">
+            <section className="py-16 md:py-20 lg:py-24 bg-gradient-to-br from-purple-50 via-white to-purple-50 relative overflow-hidden">
+                <div className="container mx-auto px-4 md:px-6 lg:px-8 relative z-10">
                     {/* Header */}
-                    <div className="text-center mb-16">
-                        <p className="text-gray-500 mb-2">Testimonial</p>
-                        <h2 className="text-4xl font-bold leading-tight">
+                    <div className="text-center mb-12 md:mb-16">
+                        <p className="text-gray-500 mb-2 text-sm uppercase tracking-wide">Testimonial</p>
+                        <h2 className="text-3xl md:text-4xl font-bold leading-tight">
                             <span className="text-[#6059f7]">Câu chuyện thành công</span>
                             <br />
                             <span className="text-gray-800">từ cộng đồng StudyMate</span>
@@ -709,14 +709,14 @@ export function LandingPage() {
 
 
       {/* Newsletter Section */}
-      <section className="py-20 bg-white relative overflow-hidden">
+      <section className="py-16 md:py-20 lg:py-24 bg-white relative overflow-hidden">
         {/* Decorative purple shapes */}
-        <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-bl from-purple-600 to-purple-700 pointer-events-none rounded-bl-[200px]"></div>
+        <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-bl from-purple-600 to-purple-700 pointer-events-none rounded-bl-[100px] md:rounded-bl-[200px] hidden lg:block"></div>
         
         {/* Orange circle decoration */}
-        <div className="absolute right-1/4 top-1/4 w-64 h-64 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full opacity-90 z-10"></div>
+        <div className="absolute right-1/4 top-1/4 w-48 h-48 md:w-64 md:h-64 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full opacity-90 z-10 hidden lg:block"></div>
 
-        <div className="container mx-auto px-4 relative z-20">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 relative z-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
             {/* Left Content */}
             <div className="space-y-6">
@@ -730,22 +730,22 @@ export function LandingPage() {
               </p>
 
               {/* Email Form */}
-              <form onSubmit={handleNewsletterSubmit} className="flex gap-4 max-w-xl">
+              <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3 md:gap-4 max-w-xl">
                 <Input
                   type="email"
                   placeholder="Nhập email của bạn"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 px-6 py-6 text-base rounded-full border-2 border-gray-200 bg-white focus:border-[#6059f7]"
+                  className="flex-1 px-4 md:px-6 py-3 md:py-6 text-sm md:text-base rounded-full border-2 border-gray-200 bg-white focus:border-[#6059f7]"
                   required
                 />
                 <Button
                   type="submit"
                   size="lg"
-                  className="bg-[#6059f7] hover:bg-[#4f47d9] text-white px-8 py-6 text-base rounded-full font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                  className="bg-[#6059f7] hover:bg-[#4f47d9] text-white px-6 md:px-8 py-3 md:py-6 text-sm md:text-base rounded-full font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                 >
                   Đăng ký
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
                 </Button>
               </form>
 
@@ -798,12 +798,12 @@ export function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-6 text-gray-900">
+      <section className="py-16 md:py-20 lg:py-24 bg-gradient-to-br from-purple-50 via-white to-purple-50">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6 text-gray-900">
             Sẵn sàng bắt đầu hành trình học tập?
           </h2>
-          <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-600 text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
             Tham gia StudyMate ngay hôm nay và khám phá cách học tập thông minh hơn
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
