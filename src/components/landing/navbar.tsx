@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { label: 'Trang chủ', href: '/' },
+  { label: 'Trang chủ', href: '/home' },
   { label: 'Bạn học', href: '/matches' },
   { label: 'Sự kiện', href: '/competitions' },
   { label: 'Diễn đàn', href: '/forum' },
