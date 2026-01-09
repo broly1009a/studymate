@@ -56,7 +56,7 @@ export const onboardingStep1Schema = z.object({
     year: z.string().min(1, 'Năm sinh không hợp lệ'),
   }),
   gender: z.enum(['male', 'female', 'other'], {
-    required_error: 'Vui lòng chọn giới tính',
+    message: 'Vui lòng chọn giới tính',
   }),
 });
 
