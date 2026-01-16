@@ -123,7 +123,7 @@ export default function MessagesPage() {
     }
   }, []);
 
-  const markAsRead = useCallback(async (conversationId: string) => {
+  const markAsRead = useCallback(async (conversationId: string, retryCount = 0) => {
     if (!user?.id) return;
 
  
@@ -144,6 +144,9 @@ export default function MessagesPage() {
 
     emitMessagesRead(conversationId, user.id);
 
+    // Retry logic with exponential backoff
+    const maxRetries = 3;
+    const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Max 5 seconds
 
     try {
       console.log('🔵 Calling mark-read API for conversation:', conversationId);
@@ -157,12 +160,27 @@ export default function MessagesPage() {
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        
+        // Retry on write conflict errors (500) or timeout errors
+        if ((response.status === 500 || response.status === 409) && retryCount < maxRetries) {
+          console.warn(`⚠️ Write conflict detected, retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return markAsRead(conversationId, retryCount + 1);
+        }
+        
         console.error('❌ Mark-read API failed:', response.status, errorData);
       } else {
         console.log('✅ Mark-read API success');
       }
     } catch (error) {
       console.error('❌ Failed to mark as read:', error);
+      
+      // Retry on network errors
+      if (retryCount < maxRetries) {
+        console.warn(`⚠️ Network error, retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return markAsRead(conversationId, retryCount + 1);
+      }
     }
   }, [user?.id, emitMessagesRead]);
 
