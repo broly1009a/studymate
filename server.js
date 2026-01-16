@@ -60,6 +60,48 @@ app.prepare().then(() => {
       });
     });
 
+    // Voice Call Events
+    socket.on('initiate-call', (data) => {
+      // Notify other users in conversation about incoming call
+      socket.to(data.conversationId).emit('incoming-call', {
+        callerId: data.callerId,
+        callerName: data.callerName
+      });
+      console.log(`User ${data.callerId} initiated call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('accept-call', (data) => {
+      // Notify caller that call was accepted
+      socket.to(data.conversationId).emit('call-accepted', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} accepted call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('reject-call', (data) => {
+      // Notify caller that call was rejected
+      socket.to(data.conversationId).emit('call-rejected', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} rejected call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('end-call', (data) => {
+      // Notify other users that call ended
+      socket.to(data.conversationId).emit('call-ended', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} ended call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('call-signal', (data) => {
+      // Forward WebRTC signaling data to other peers
+      socket.to(data.conversationId).emit('call-signal', {
+        userId: data.userId,
+        signal: data.signal
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
     });

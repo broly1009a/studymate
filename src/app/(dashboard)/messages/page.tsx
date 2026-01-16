@@ -26,7 +26,9 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
 import { useSocket } from '@/hooks/use-socket';
+import { useWebRTC } from '@/hooks/use-webrtc';
 import { API_URL } from '@/lib/constants';
+import VoiceCallModal from '@/components/chat/voice-call-modal';
 interface Conversation {
   _id: string;
   participants: string[];
@@ -59,12 +61,28 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [showCallModal, setShowCallModal] = useState(false);
 
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinConversation, leaveConversation, onNewMessage, emitMessagesRead, onMessagesRead } = useSocket();
 
+  // WebRTC hook for voice calls
+  const {
+    callStatus,
+    isMuted,
+    remoteUserName,
+    startCall,
+    answerCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+  } = useWebRTC({
+    conversationId: selectedConversation?._id || '',
+    currentUserId: user?.id || '',
+    currentUserName: user?.fullName || '',
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -241,6 +259,20 @@ export default function MessagesPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Handle call button click
+  const handleStartCall = () => {
+    if (!selectedConversation) return;
+    setShowCallModal(true);
+    startCall();
+  };
+
+  // Auto open modal when receiving call
+  useEffect(() => {
+    if (callStatus === 'ringing' || callStatus === 'calling') {
+      setShowCallModal(true);
+    }
+  }, [callStatus]);
+
   const filteredConversations = conversations.filter((conv) =>
     conv.participantNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -274,6 +306,20 @@ export default function MessagesPage() {
   };
 
   return (
+    <>
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        isOpen={showCallModal}
+        onClose={() => setShowCallModal(false)}
+        callStatus={callStatus}
+        remoteUserName={remoteUserName}
+        isMuted={isMuted}
+        onAnswer={answerCall}
+        onReject={rejectCall}
+        onEndCall={endCall}
+        onToggleMute={toggleMute}
+      />
+
     <div className="h-[calc(100vh-4rem)] flex">
       {/* Left Sidebar - Conversations List */}
       <div className="w-80 border-r bg-background flex flex-col">
@@ -393,13 +439,19 @@ export default function MessagesPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleStartCall}
+                disabled={callStatus !== 'idle'}
+                title="Gọi điện thoại"
+              >
                 <Phone className="h-5 w-5 text-primary" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" title="Video call (Coming soon)">
                 <Video className="h-5 w-5 text-primary" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" title="Thông tin">
                 <Info className="h-5 w-5 text-primary" />
               </Button>
             </div>
@@ -595,6 +647,7 @@ export default function MessagesPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

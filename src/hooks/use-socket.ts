@@ -67,6 +67,62 @@ export const useSocket = () => {
     };
   };
 
+  // Voice Call Events
+  const initiateCall = (conversationId: string, callerId: string, callerName: string) => {
+    socket?.emit('initiate-call', { conversationId, callerId, callerName });
+  };
+
+  const acceptCall = (conversationId: string, userId: string) => {
+    socket?.emit('accept-call', { conversationId, userId });
+  };
+
+  const rejectCall = (conversationId: string, userId: string) => {
+    socket?.emit('reject-call', { conversationId, userId });
+  };
+
+  const endCall = (conversationId: string, userId: string) => {
+    socket?.emit('end-call', { conversationId, userId });
+  };
+
+  const sendCallSignal = (conversationId: string, userId: string, signal: any) => {
+    socket?.emit('call-signal', { conversationId, userId, signal });
+  };
+
+  const onIncomingCall = (callback: (data: any) => void): (() => void) => {
+    socket?.on('incoming-call', callback);
+    return () => {
+      socket?.off('incoming-call', callback);
+    };
+  };
+
+  const onCallAccepted = (callback: (data: any) => void): (() => void) => {
+    socket?.on('call-accepted', callback);
+    return () => {
+      socket?.off('call-accepted', callback);
+    };
+  };
+
+  const onCallRejected = (callback: (data: any) => void): (() => void) => {
+    socket?.on('call-rejected', callback);
+    return () => {
+      socket?.off('call-rejected', callback);
+    };
+  };
+
+  const onCallEnded = (callback: (data: any) => void): (() => void) => {
+    socket?.on('call-ended', callback);
+    return () => {
+      socket?.off('call-ended', callback);
+    };
+  };
+
+  const onCallSignal = (callback: (data: any) => void): (() => void) => {
+    socket?.on('call-signal', callback);
+    return () => {
+      socket?.off('call-signal', callback);
+    };
+  };
+
   return {
     socket: socketRef.current,
     joinConversation,
@@ -78,5 +134,16 @@ export const useSocket = () => {
     onUserStopTyping,
     emitMessagesRead,
     onMessagesRead,
+    // Voice Call
+    initiateCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    sendCallSignal,
+    onIncomingCall,
+    onCallAccepted,
+    onCallRejected,
+    onCallEnded,
+    onCallSignal,
   };
 };

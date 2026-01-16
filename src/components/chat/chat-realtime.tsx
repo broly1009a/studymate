@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/hooks/use-socket';
+import { useWebRTC } from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Phone } from 'lucide-react';
 import { API_URL } from '@/lib/constants';
+import VoiceCallModal from './voice-call-modal';
 interface Message {
   _id: string;
   senderId: string;
@@ -29,6 +32,7 @@ export default function ChatRealtime({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -40,6 +44,22 @@ export default function ChatRealtime({
     onUserTyping,
     onUserStopTyping,
   } = useSocket();
+
+  // WebRTC hook for voice calls
+  const {
+    callStatus,
+    isMuted,
+    remoteUserName,
+    startCall,
+    answerCall,
+    rejectCall,
+    endCall,
+    toggleMute,
+  } = useWebRTC({
+    conversationId,
+    currentUserId,
+    currentUserName,
+  });
 
   useEffect(() => {
     // Join conversation
@@ -126,8 +146,48 @@ export default function ChatRealtime({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Handle call button click
+  const handleStartCall = () => {
+    setShowCallModal(true);
+    startCall();
+  };
+
+  // Auto open modal when receiving call
+  useEffect(() => {
+    if (callStatus === 'ringing') {
+      setShowCallModal(true);
+    }
+  }, [callStatus]);
+
   return (
     <div className="flex flex-col h-full">
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        isOpen={showCallModal}
+        onClose={() => setShowCallModal(false)}
+        callStatus={callStatus}
+        remoteUserName={remoteUserName}
+        isMuted={isMuted}
+        onAnswer={answerCall}
+        onReject={rejectCall}
+        onEndCall={endCall}
+        onToggleMute={toggleMute}
+      />
+
+      {/* Chat Header with Call Button */}
+      <div className="p-4 border-b flex items-center justify-between">
+        <h3 className="font-semibold">Chat</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleStartCall}
+          disabled={callStatus !== 'idle'}
+        >
+          <Phone className="w-4 h-4 mr-2" />
+          {callStatus === 'idle' ? 'Gọi điện' : 'Đang gọi...'}
+        </Button>
+      </div>
+
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message) => (
