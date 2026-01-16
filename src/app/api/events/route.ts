@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
       location,
       image,
       organizer: user.fullName || user.username, // Use authenticated user's name
+      organizerId: user._id, // Store user ID for permissions
       tags: tags || [],
       maxParticipants,
     });

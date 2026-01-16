@@ -9,6 +9,7 @@ export interface IEvent extends Document {
   location: string;
   image?: string;
   organizer: string;
+  organizerId: mongoose.Types.ObjectId;
   tags: string[];
   participants: mongoose.Types.ObjectId[];
   participantCount: number;
@@ -53,6 +54,11 @@ const eventSchema = new Schema<IEvent>(
     },
     organizer: {
       type: String,
+      required: true,
+    },
+    organizerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
     },
     tags: {

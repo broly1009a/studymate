@@ -5,41 +5,7 @@ import mongoose from 'mongoose';
 import { verifyToken } from '@/lib/api/auth';
 import User from '@/models/User';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    await connectDB();
-
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid event ID' },
-        { status: 400 }
-      );
-    }
-
-    const event = await Event.findById(id).lean();
-
-    if (!event) {
-      return NextResponse.json(
-        { success: false, message: 'Event not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true, data: event });
-  } catch (error) {
-    return NextResponse.json(
-      { success: false, message: 'Failed to fetch event', error: String(error) },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(
+export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -91,42 +57,37 @@ export async function PUT(
       );
     }
 
-    // Authorization check - only creator or admin can edit
-    const isOrganizer = event.organizerId.equals(user._id);
-    const isAdmin = user.role === 'admin';
-
-    if (!isOrganizer && !isAdmin) {
+    // Check if user is already a participant
+    const userId = user._id.toString();
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    if (event.participants.some((id: any) => id.equals(userObjectId))) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Access denied - Only event creator or admin can edit' 
-        },
-        { status: 403 }
+        { success: false, message: 'You are already a participant' },
+        { status: 400 }
       );
     }
 
-    const body = await req.json();
-    const { title, description, type, date, time, location, image, tags, maxParticipants } = body;
+    // Check if event is full
+    if (event.maxParticipants && event.participantCount >= event.maxParticipants) {
+      return NextResponse.json(
+        { success: false, message: 'Event is full' },
+        { status: 400 }
+      );
+    }
 
-    // Update fields
-    if (title) event.title = title;
-    if (description) event.description = description;
-    if (type) event.type = type;
-    if (date) event.date = date;
-    if (time) event.time = time;
-    if (location) event.location = location;
-    if (image !== undefined) event.image = image;
-    if (tags) event.tags = tags;
-    if (maxParticipants !== undefined) event.maxParticipants = maxParticipants;
-
+    // Add user to participants
+    event.participants.push(userObjectId);
+    event.participantCount = event.participants.length;
     await event.save();
 
-    return NextResponse.json(
-      { success: true, data: event, message: 'Event updated successfully' }
-    );
+    return NextResponse.json({
+      success: true,
+      data: event,
+      message: 'Successfully joined the event',
+    });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: 'Failed to update event', error: String(error) },
+      { success: false, message: 'Failed to join event', error: String(error) },
       { status: 500 }
     );
   }
@@ -184,28 +145,29 @@ export async function DELETE(
       );
     }
 
-    // Authorization check - only creator or admin can delete
-    const isOrganizer = event.organizer === (user.fullName || user.username);
-    const isAdmin = user.role === 'admin';
-
-    if (!isOrganizer && !isAdmin) {
+    // Check if user is a participant
+    const userId = user._id.toString();
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    if (!event.participants.some((id: any) => id.equals(userObjectId))) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Access denied - Only event creator or admin can delete' 
-        },
-        { status: 403 }
+        { success: false, message: 'You are not a participant of this event' },
+        { status: 400 }
       );
     }
 
-    await Event.findByIdAndDelete(id);
+    // Remove user from participants
+    event.participants = event.participants.filter((id: any) => !id.equals(userObjectId));
+    event.participantCount = event.participants.length;
+    await event.save();
 
-    return NextResponse.json(
-      { success: true, data: event, message: 'Event deleted successfully' }
-    );
+    return NextResponse.json({
+      success: true,
+      data: event,
+      message: 'Successfully left the event',
+    });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: 'Failed to delete event', error: String(error) },
+      { success: false, message: 'Failed to leave event', error: String(error) },
       { status: 500 }
     );
   }
