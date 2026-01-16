@@ -20,6 +20,7 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
   const peerRef = useRef<SimplePeer.Instance | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingSignalRef = useRef<SimplePeer.SignalData | null>(null);
 
   const {
     socket,
@@ -62,11 +63,13 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
 
       peer.on('signal', (signal) => {
         // Send offer to remote peer
+        console.log('📤 Sending offer signal to receiver');
         sendCallSignal(conversationId, currentUserId, signal);
       });
 
       peer.on('stream', (remoteStream) => {
         // Play remote audio
+        console.log('🎵 Received remote stream - call connected!');
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStream;
         }
@@ -108,11 +111,13 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
 
       peer.on('signal', (signal) => {
         // Send answer to caller
+        console.log('📤 Sending answer signal to caller');
         sendCallSignal(conversationId, currentUserId, signal);
       });
 
       peer.on('stream', (remoteStream) => {
         // Play remote audio
+        console.log('🎵 Received remote stream - call connected!');
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStream;
         }
@@ -126,9 +131,16 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
 
       peerRef.current = peer;
       
-      // Accept call
+      // If we have a pending signal (offer from caller), apply it now
+      if (pendingSignalRef.current) {
+        console.log('📥 Applying pending offer signal');
+        peer.signal(pendingSignalRef.current);
+        pendingSignalRef.current = null;
+      }
+      
+      // Accept call - notify other user
       acceptCall(conversationId, currentUserId);
-      setCallStatus('connected');
+      console.log('✅ Call accepted, waiting for connection...');
     } catch (error) {
       console.error('Failed to answer call:', error);
       alert('Không thể truy cập microphone. Vui lòng cho phép quyền truy cập.');
@@ -185,7 +197,10 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
 
   // Listen for incoming call
   useEffect(() => {
+    if (!conversationId) return;
+    
     const unsubscribe = onIncomingCall((data: { callerId: string; callerName: string }) => {
+      console.log('📞 Incoming call from:', data.callerName);
       if (data.callerId !== currentUserId) {
         setRemoteUserName(data.callerName);
         setCallStatus('ringing');
@@ -193,48 +208,69 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
     });
 
     return unsubscribe;
-  }, [currentUserId, onIncomingCall]);
+  }, [conversationId, currentUserId, onIncomingCall]);
 
   // Listen for call accepted
   useEffect(() => {
+    if (!conversationId) return;
+    
     const unsubscribe = onCallAccepted((data: { userId: string }) => {
+      console.log('✅ Call accepted by:', data.userId);
       if (data.userId !== currentUserId && callStatus === 'calling') {
         // Call was accepted, wait for signal
+        console.log('⏳ Waiting for answer signal...');
       }
     });
 
     return unsubscribe;
-  }, [currentUserId, callStatus, onCallAccepted]);
+  }, [conversationId, currentUserId, callStatus, onCallAccepted]);
 
   // Listen for call rejected
   useEffect(() => {
+    if (!conversationId) return;
+    
     const unsubscribe = onCallRejected(() => {
+      console.log('❌ Call rejected');
       handleEndCall();
       alert('Cuộc gọi bị từ chối');
     });
 
     return unsubscribe;
-  }, [onCallRejected, handleEndCall]);
+  }, [conversationId, onCallRejected, handleEndCall]);
 
   // Listen for call ended
   useEffect(() => {
+    if (!conversationId) return;
+    
     const unsubscribe = onCallEnded(() => {
+      console.log('📞 Call ended by remote user');
       handleEndCall();
     });
 
     return unsubscribe;
-  }, [onCallEnded, handleEndCall]);
+  }, [conversationId, onCallEnded, handleEndCall]);
 
   // Listen for WebRTC signals
   useEffect(() => {
+    if (!conversationId) return;
+    
     const unsubscribe = onCallSignal((data: { userId: string; signal: SimplePeer.SignalData }) => {
-      if (data.userId !== currentUserId && peerRef.current) {
-        peerRef.current.signal(data.signal);
+      if (data.userId !== currentUserId) {
+        console.log('📥 Received signal from peer:', peerRef.current ? 'Peer exists' : 'No peer yet');
+        if (peerRef.current) {
+          // Peer exists, apply signal immediately
+          console.log('✅ Applying signal to existing peer');
+          peerRef.current.signal(data.signal);
+        } else {
+          // Peer not created yet (we're receiving), store signal for later
+          console.log('💾 Storing signal for later (pending)');
+          pendingSignalRef.current = data.signal;
+        }
       }
     });
 
     return unsubscribe;
-  }, [currentUserId, onCallSignal]);
+  }, [conversationId, currentUserId, onCallSignal]);
 
   return {
     callStatus,
