@@ -27,8 +27,10 @@ import { vi } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
 import { useSocket } from '@/hooks/use-socket';
 import { useWebRTC } from '@/hooks/use-webrtc';
+import { useVideoCall } from '@/hooks/use-video-call';
 import { API_URL } from '@/lib/constants';
 import VoiceCallModal from '@/components/chat/voice-call-modal';
+import { VideoCallModal } from '@/components/chat/video-call-modal';
 interface Conversation {
   _id: string;
   participants: string[];
@@ -62,6 +64,7 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [showCallModal, setShowCallModal] = useState(false);
+  const [showVideoCallModal, setShowVideoCallModal] = useState(false);
 
   const lastConversationIdRef = useRef<string | null>(null);
   const joinedConversationsRef = useRef<Set<string>>(new Set());
@@ -79,6 +82,26 @@ export default function MessagesPage() {
     endCall,
     toggleMute,
   } = useWebRTC({
+    conversationId: selectedConversation?._id || '',
+    currentUserId: user?.id || '',
+    currentUserName: user?.fullName || '',
+  });
+
+  // Video call hook
+  const {
+    callStatus: videoCallStatus,
+    isMuted: isVideoMuted,
+    isVideoOff,
+    remoteUserName: videoRemoteUserName,
+    localVideoRef,
+    remoteVideoRef,
+    startVideoCall,
+    answerVideoCall,
+    rejectCall: rejectVideoCall,
+    endCall: endVideoCall,
+    toggleMute: toggleVideoMute,
+    toggleVideo,
+  } = useVideoCall({
     conversationId: selectedConversation?._id || '',
     currentUserId: user?.id || '',
     currentUserName: user?.fullName || '',
@@ -285,12 +308,26 @@ export default function MessagesPage() {
     startCall();
   };
 
+  // Handle video call button click
+  const handleStartVideoCall = () => {
+    if (!selectedConversation) return;
+    setShowVideoCallModal(true);
+    startVideoCall();
+  };
+
   // Auto open modal when receiving call
   useEffect(() => {
     if (callStatus === 'ringing' || callStatus === 'calling') {
       setShowCallModal(true);
     }
   }, [callStatus]);
+
+  // Auto open video modal when receiving video call
+  useEffect(() => {
+    if (videoCallStatus === 'ringing' || videoCallStatus === 'calling') {
+      setShowVideoCallModal(true);
+    }
+  }, [videoCallStatus]);
 
   const filteredConversations = conversations.filter((conv) =>
     conv.participantNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -337,6 +374,24 @@ export default function MessagesPage() {
         onReject={rejectCall}
         onEndCall={endCall}
         onToggleMute={toggleMute}
+      />
+
+      {/* Video Call Modal */}
+      <VideoCallModal
+        isOpen={showVideoCallModal}
+        onClose={() => setShowVideoCallModal(false)}
+        callStatus={videoCallStatus}
+        remoteUserName={videoRemoteUserName}
+        currentUserName={user?.fullName || ''}
+        isMuted={isVideoMuted}
+        isVideoOff={isVideoOff}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        onAnswer={answerVideoCall}
+        onReject={rejectVideoCall}
+        onEnd={endVideoCall}
+        onToggleMute={toggleVideoMute}
+        onToggleVideo={toggleVideo}
       />
 
     <div className="h-[calc(100vh-4rem)] flex">
@@ -467,7 +522,13 @@ export default function MessagesPage() {
               >
                 <Phone className="h-5 w-5 text-primary" />
               </Button>
-              <Button variant="ghost" size="icon" title="Video call (Coming soon)">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleStartVideoCall}
+                disabled={videoCallStatus !== 'idle'}
+                title="Gọi video"
+              >
                 <Video className="h-5 w-5 text-primary" />
               </Button>
               <Button variant="ghost" size="icon" title="Thông tin">
