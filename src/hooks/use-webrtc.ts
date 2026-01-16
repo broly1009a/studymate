@@ -21,6 +21,7 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingSignalRef = useRef<SimplePeer.SignalData | null>(null);
+  const isEndingCallRef = useRef(false);
 
   const {
     socket,
@@ -157,6 +158,15 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
 
   // End call
   const handleEndCall = useCallback(() => {
+    // Prevent infinite loop
+    if (isEndingCallRef.current) {
+      console.log('⚠️ Already ending call, skipping...');
+      return;
+    }
+    
+    isEndingCallRef.current = true;
+    console.log('🔴 Ending call...');
+    
     // Stop local stream
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -174,13 +184,14 @@ export const useWebRTC = ({ conversationId, currentUserId, currentUserName }: Us
       peerRef.current = null;
     }
 
-    // Notify other user
+    // Notify other user only once
     endCall(conversationId, currentUserId);
     
     setCallStatus('ended');
     setTimeout(() => {
       setCallStatus('idle');
       setRemoteUserName('');
+      isEndingCallRef.current = false; // Reset flag
     }, 2000);
   }, [conversationId, currentUserId, endCall]);
 

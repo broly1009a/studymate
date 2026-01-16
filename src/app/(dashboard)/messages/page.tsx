@@ -156,7 +156,8 @@ export default function MessagesPage() {
       });
       
       if (!response.ok) {
-        console.error('❌ Mark-read API failed:', response.status, response.statusText);
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('❌ Mark-read API failed:', response.status, errorData);
       } else {
         console.log('✅ Mark-read API success');
       }
