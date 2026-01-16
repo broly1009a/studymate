@@ -9,10 +9,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from '@/lib/i18n/vi';
+import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 
 export default function GroupChatPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const { user } = useAuth();
   const [group, setGroup] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -144,30 +146,52 @@ export default function GroupChatPage({ params }: { params: Promise<{ slug: stri
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto space-y-4 mb-4">
             {messages.length === 0 ? (
-              <div className="text-center py-8">
+              <div key="no-messages" className="text-center py-8">
                 <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
               </div>
             ) : (
-              messages.map((message: any) => (
-                <div key={message._id} className="flex space-x-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium">
-                      {(message.sender?.fullName || 'Anonymous').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium">
-                        {message.sender?.fullName || 'Anonymous'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
+              messages.map((message: any, index: number) => {
+                const isOwnMessage = message.userId === user?.id;
+                return isOwnMessage ? (
+                  <div key={message.id} className="flex justify-end">
+                    <div className="bg-primary text-primary-foreground p-3 rounded-lg max-w-xs">
+                      <p className="text-sm">{message.content}</p>
+                      <span className="text-xs opacity-70">
                         {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm mt-1">{message.content}</p>
                   </div>
-                </div>
-              ))
+                ) : (
+                  <div key={message.id} className="flex space-x-3">
+                    {message.userAvatar ? (
+                      <Image
+                        src={message.userAvatar}
+                        alt={message.userName || 'User'}
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium">
+                          {(message.userName || 'Anonymous').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium">
+                          {message.userName || 'Anonymous'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1">{message.content}</p>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
 
