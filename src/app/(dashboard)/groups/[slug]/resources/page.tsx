@@ -67,7 +67,7 @@ export default function GroupResourcesPage({ params }: { params: Promise<{ slug:
           },
         });
         const resourcesData = await resourcesRes.json();
-
+        
         if (resourcesData.success) setResources(resourcesData.data);
       }
     } catch (error) {

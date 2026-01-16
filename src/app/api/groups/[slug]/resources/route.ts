@@ -209,6 +209,7 @@ export async function POST(
       fileSize,
       uploaderId: user._id, 
       tags: tags || [],
+      parentId: null, // Explicitly set parentId to null for root resources
     });
 
     await resource.save();

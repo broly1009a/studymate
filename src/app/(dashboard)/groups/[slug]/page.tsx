@@ -29,6 +29,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const [group, setGroup] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('about');
   const [isMember, setIsMember] = useState(false);
@@ -101,7 +102,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
           }
 
           // Fetch members and events using the slug
-          const [membersRes, eventsRes] = await Promise.all([
+          const [membersRes, eventsRes, resourcesRes] = await Promise.all([
             fetch(`${API_URL}/groups/${slug}/members`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -112,13 +113,20 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
                 'Authorization': `Bearer ${token}`,
               },
             }),
+            fetch(`${API_URL}/groups/${slug}/resources`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            }),
           ]);
 
           const membersData = await membersRes.json();
           const eventsData = await eventsRes.json();
+          const resourcesData = await resourcesRes.json();
 
           if (membersData.success) setMembers(membersData.data);
           if (eventsData.success) setEvents(eventsData.data);
+          if (resourcesData.success) setResources(resourcesData.data);
         }
       } catch (error) {
         console.error('Failed to fetch group data:', error);
@@ -676,15 +684,54 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No resources shared yet</p>
-                <Link href={`/groups/${slug}/resources`}>
-                  <Button className="mt-4">
-                    Browse Resources
-                  </Button>
-                </Link>
-              </div>
+              {resources.length === 0 ? (
+                <div className="text-center py-8">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No resources shared yet</p>
+                  <Link href={`/groups/${slug}/resources`}>
+                    <Button className="mt-4">
+                      Browse Resources
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {resources.slice(0, 5).map((resource: any) => (
+                    <div key={resource.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
+                          <FolderOpen className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{resource.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {resource.fileSize ? `${(resource.fileSize / 1024 / 1024).toFixed(1)} MB` : 'File'}
+                          </p>
+                        </div>
+                      </div>
+                      {resource.tags && resource.tags.length > 0 && (
+                        <div className="flex gap-1">
+                          {resource.tags.slice(0, 2).map((tag: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {resources.length > 5 && (
+                    <p className="text-sm text-muted-foreground text-center pt-2">
+                      +{resources.length - 5} more resources
+                    </p>
+                  )}
+                  <Link href={`/groups/${slug}/resources`}>
+                    <Button className="w-full mt-4" variant="outline">
+                      View All Resources ({resources.length})
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
