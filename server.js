@@ -102,6 +102,43 @@ app.prepare().then(() => {
       });
     });
 
+    // Video Call Events (separate from voice call)
+    socket.on('initiate-video-call', (data) => {
+      socket.to(data.conversationId).emit('incoming-video-call', {
+        callerId: data.callerId,
+        callerName: data.callerName
+      });
+      console.log(`User ${data.callerId} initiated VIDEO call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('accept-video-call', (data) => {
+      socket.to(data.conversationId).emit('video-call-accepted', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} accepted VIDEO call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('reject-video-call', (data) => {
+      socket.to(data.conversationId).emit('video-call-rejected', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} rejected VIDEO call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('end-video-call', (data) => {
+      socket.to(data.conversationId).emit('video-call-ended', {
+        userId: data.userId
+      });
+      console.log(`User ${data.userId} ended VIDEO call in conversation ${data.conversationId}`);
+    });
+
+    socket.on('video-call-signal', (data) => {
+      socket.to(data.conversationId).emit('video-call-signal', {
+        userId: data.userId,
+        signal: data.signal
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
     });

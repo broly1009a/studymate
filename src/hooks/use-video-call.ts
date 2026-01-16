@@ -28,16 +28,16 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
 
   const {
     socket,
-    initiateCall,
-    acceptCall,
-    rejectCall,
-    endCall,
-    sendCallSignal,
-    onIncomingCall,
-    onCallAccepted,
-    onCallRejected,
-    onCallEnded,
-    onCallSignal,
+    initiateVideoCall,
+    acceptVideoCall,
+    rejectVideoCall,
+    endVideoCall,
+    sendVideoCallSignal,
+    onIncomingVideoCall,
+    onVideoCallAccepted,
+    onVideoCallRejected,
+    onVideoCallEnded,
+    onVideoCallSignal,
   } = useSocket();
 
   // Start video call - người gọi
@@ -64,7 +64,7 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
 
       peer.on('signal', (signal) => {
         console.log('📤 Sending video offer signal');
-        sendCallSignal(conversationId, currentUserId, signal);
+        sendVideoCallSignal(conversationId, currentUserId, signal);
       });
 
       peer.on('stream', (remoteStream) => {
@@ -85,79 +85,19 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
       setCallStatus('calling');
       
       // Notify remote user
-      initiateCall(conversationId, currentUserId, currentUserName);
+      initiateVideoCall(conversationId, currentUserId, currentUserName);
     } catch (error) {
       console.error('Failed to start video call:', error);
       alert('Không thể truy cập camera/microphone. Vui lòng cho phép quyền truy cập.');
     }
-  }, [conversationId, currentUserId, currentUserName, initiateCall, sendCallSignal]);
-
-  // Answer video call - người nhận
-  const answerVideoCall = useCallback(async () => {
-    try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
-      localStreamRef.current = stream;
-
-      // Display local video
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
-      // Create peer connection (not initiator)
-      const peer = new SimplePeer({
-        initiator: false,
-        trickle: false,
-        stream: stream,
-      });
-
-      peer.on('signal', (signal) => {
-        console.log('📤 Sending video answer signal');
-        sendCallSignal(conversationId, currentUserId, signal);
-      });
-
-      peer.on('stream', (remoteStream) => {
-        console.log('🎥 Received remote video stream');
-        remoteStreamRef.current = remoteStream;
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
-        setCallStatus('connected');
-      });
-
-      peer.on('error', (err) => {
-        console.error('Peer error:', err);
-        handleEndCall();
-      });
-
-      peerRef.current = peer;
-      
-      // If we have a pending signal (offer from caller), apply it now
-      if (pendingSignalRef.current) {
-        console.log('📥 Applying pending video offer signal');
-        peer.signal(pendingSignalRef.current);
-        pendingSignalRef.current = null;
-      }
-      
-      // Accept call
-      acceptCall(conversationId, currentUserId);
-      console.log('✅ Video call accepted, waiting for connection...');
-    } catch (error) {
-      console.error('Failed to answer video call:', error);
-      alert('Không thể truy cập camera/microphone. Vui lòng cho phép quyền truy cập.');
-      handleRejectCall();
-    }
-  }, [conversationId, currentUserId, acceptCall, sendCallSignal]);
+  }, [conversationId, currentUserId, currentUserName, initiateVideoCall, sendVideoCallSignal]);
 
   // Reject call
   const handleRejectCall = useCallback(() => {
-    rejectCall(conversationId, currentUserId);
+    rejectVideoCall(conversationId, currentUserId);
     setCallStatus('idle');
     setRemoteUserName('');
-  }, [conversationId, currentUserId, rejectCall]);
+  }, [conversationId, currentUserId, rejectVideoCall]);
 
   // End call
   const handleEndCall = useCallback(() => {
@@ -192,7 +132,7 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
     }
 
     // Notify other user
-    endCall(conversationId, currentUserId);
+    endVideoCall(conversationId, currentUserId);
     
     setCallStatus('ended');
     setTimeout(() => {
@@ -200,7 +140,67 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
       setRemoteUserName('');
       isEndingCallRef.current = false;
     }, 2000);
-  }, [conversationId, currentUserId, endCall]);
+  }, [conversationId, currentUserId, endVideoCall]);
+
+  // Answer video call - người nhận
+  const answerVideoCall = useCallback(async () => {
+    try {
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      localStreamRef.current = stream;
+
+      // Display local video
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Create peer connection (not initiator)
+      const peer = new SimplePeer({
+        initiator: false,
+        trickle: false,
+        stream: stream,
+      });
+
+      peer.on('signal', (signal) => {
+        console.log('📤 Sending video answer signal');
+        sendVideoCallSignal(conversationId, currentUserId, signal);
+      });
+
+      peer.on('stream', (remoteStream) => {
+        console.log('🎥 Received remote video stream');
+        remoteStreamRef.current = remoteStream;
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+        setCallStatus('connected');
+      });
+
+      peer.on('error', (err) => {
+        console.error('Peer error:', err);
+        handleEndCall();
+      });
+
+      peerRef.current = peer;
+      
+      // If we have a pending signal (offer from caller), apply it now
+      if (pendingSignalRef.current) {
+        console.log('📥 Applying pending video offer signal');
+        peer.signal(pendingSignalRef.current);
+        pendingSignalRef.current = null;
+      }
+      
+      // Accept call
+      acceptVideoCall(conversationId, currentUserId);
+      console.log('✅ Video call accepted, waiting for connection...');
+    } catch (error) {
+      console.error('Failed to answer video call:', error);
+      alert('Không thể truy cập camera/microphone. Vui lòng cho phép quyền truy cập.');
+      handleRejectCall();
+    }
+  }, [conversationId, currentUserId, acceptVideoCall, sendVideoCallSignal, handleRejectCall]);
 
   // Toggle mute
   const toggleMute = useCallback(() => {
@@ -228,7 +228,7 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
   useEffect(() => {
     if (!conversationId) return;
     
-    const unsubscribe = onIncomingCall((data: { callerId: string; callerName: string }) => {
+    const unsubscribe = onIncomingVideoCall((data: { callerId: string; callerName: string }) => {
       console.log('📞 Incoming video call from:', data.callerName);
       if (data.callerId !== currentUserId) {
         setRemoteUserName(data.callerName);
@@ -237,13 +237,13 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
     });
 
     return unsubscribe;
-  }, [conversationId, currentUserId, onIncomingCall]);
+  }, [conversationId, currentUserId, onIncomingVideoCall]);
 
   // Listen for call accepted
   useEffect(() => {
     if (!conversationId) return;
     
-    const unsubscribe = onCallAccepted((data: { userId: string }) => {
+    const unsubscribe = onVideoCallAccepted((data: { userId: string }) => {
       console.log('✅ Video call accepted by:', data.userId);
       if (data.userId !== currentUserId && callStatus === 'calling') {
         console.log('⏳ Waiting for video answer signal...');
@@ -251,38 +251,38 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
     });
 
     return unsubscribe;
-  }, [conversationId, currentUserId, callStatus, onCallAccepted]);
+  }, [conversationId, currentUserId, callStatus, onVideoCallAccepted]);
 
   // Listen for call rejected
   useEffect(() => {
     if (!conversationId) return;
     
-    const unsubscribe = onCallRejected(() => {
+    const unsubscribe = onVideoCallRejected(() => {
       console.log('❌ Video call rejected');
       handleEndCall();
       alert('Cuộc gọi video bị từ chối');
     });
 
     return unsubscribe;
-  }, [conversationId, onCallRejected, handleEndCall]);
+  }, [conversationId, onVideoCallRejected, handleEndCall]);
 
   // Listen for call ended
   useEffect(() => {
     if (!conversationId) return;
     
-    const unsubscribe = onCallEnded(() => {
+    const unsubscribe = onVideoCallEnded(() => {
       console.log('📞 Video call ended by remote user');
       handleEndCall();
     });
 
     return unsubscribe;
-  }, [conversationId, onCallEnded, handleEndCall]);
+  }, [conversationId, onVideoCallEnded, handleEndCall]);
 
   // Listen for WebRTC signals
   useEffect(() => {
     if (!conversationId) return;
     
-    const unsubscribe = onCallSignal((data: { userId: string; signal: SimplePeer.SignalData }) => {
+    const unsubscribe = onVideoCallSignal((data: { userId: string; signal: SimplePeer.SignalData }) => {
       if (data.userId !== currentUserId) {
         console.log('📥 Received video signal from peer:', peerRef.current ? 'Peer exists' : 'No peer yet');
         if (peerRef.current) {
@@ -296,7 +296,7 @@ export const useVideoCall = ({ conversationId, currentUserId, currentUserName }:
     });
 
     return unsubscribe;
-  }, [conversationId, currentUserId, onCallSignal]);
+  }, [conversationId, currentUserId, onVideoCallSignal]);
 
   return {
     callStatus,

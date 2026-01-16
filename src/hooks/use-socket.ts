@@ -123,6 +123,62 @@ export const useSocket = () => {
     };
   };
 
+  // Video Call Events (separate from voice call)
+  const initiateVideoCall = (conversationId: string, callerId: string, callerName: string) => {
+    socket?.emit('initiate-video-call', { conversationId, callerId, callerName });
+  };
+
+  const acceptVideoCall = (conversationId: string, userId: string) => {
+    socket?.emit('accept-video-call', { conversationId, userId });
+  };
+
+  const rejectVideoCall = (conversationId: string, userId: string) => {
+    socket?.emit('reject-video-call', { conversationId, userId });
+  };
+
+  const endVideoCall = (conversationId: string, userId: string) => {
+    socket?.emit('end-video-call', { conversationId, userId });
+  };
+
+  const sendVideoCallSignal = (conversationId: string, userId: string, signal: any) => {
+    socket?.emit('video-call-signal', { conversationId, userId, signal });
+  };
+
+  const onIncomingVideoCall = (callback: (data: any) => void): (() => void) => {
+    socket?.on('incoming-video-call', callback);
+    return () => {
+      socket?.off('incoming-video-call', callback);
+    };
+  };
+
+  const onVideoCallAccepted = (callback: (data: any) => void): (() => void) => {
+    socket?.on('video-call-accepted', callback);
+    return () => {
+      socket?.off('video-call-accepted', callback);
+    };
+  };
+
+  const onVideoCallRejected = (callback: (data: any) => void): (() => void) => {
+    socket?.on('video-call-rejected', callback);
+    return () => {
+      socket?.off('video-call-rejected', callback);
+    };
+  };
+
+  const onVideoCallEnded = (callback: (data: any) => void): (() => void) => {
+    socket?.on('video-call-ended', callback);
+    return () => {
+      socket?.off('video-call-ended', callback);
+    };
+  };
+
+  const onVideoCallSignal = (callback: (data: any) => void): (() => void) => {
+    socket?.on('video-call-signal', callback);
+    return () => {
+      socket?.off('video-call-signal', callback);
+    };
+  };
+
   return {
     socket: socketRef.current,
     joinConversation,
@@ -145,5 +201,16 @@ export const useSocket = () => {
     onCallRejected,
     onCallEnded,
     onCallSignal,
+    // Video Call
+    initiateVideoCall,
+    acceptVideoCall,
+    rejectVideoCall,
+    endVideoCall,
+    sendVideoCallSignal,
+    onIncomingVideoCall,
+    onVideoCallAccepted,
+    onVideoCallRejected,
+    onVideoCallEnded,
+    onVideoCallSignal,
   };
 };
