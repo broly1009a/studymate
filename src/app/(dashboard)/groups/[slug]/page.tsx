@@ -53,6 +53,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
         toast.error('Please login to view group details');
+        window.location.href = '/login';
         return;
       }
 
@@ -64,6 +65,16 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
           },
         });
         const groupData = await groupRes.json();
+
+        if (!groupRes.ok) {
+          if (groupRes.status === 401) {
+            toast.error('Session expired. Please login again');
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            window.location.href = '/login';
+            return;
+          }
+          throw new Error(groupData.message || 'Failed to fetch group');
+        }
 
         if (groupData.success) {
           setGroup(groupData.data);
@@ -77,14 +88,16 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
           });
           const userData = await userRes.json();
 
-          if (userData.success && userData.data) {
-            const currentUserId = userData.data._id;
+          if (userData.success && (userData.data || userData.user)) {
+            // Lấy userId từ cả hai kiểu trả về
+            const currentUserId = userData.data?._id || userData.user?._id || userData.user?.id;
             const isMemberOfGroup = groupData.data.members?.some((member: any) => member._id === currentUserId);
             const isAdminOfGroup = groupData.data.admins?.some((admin: any) => admin._id === currentUserId);
-
             setCurrentUserId(currentUserId);
             setIsMember(isMemberOfGroup || false);
             setIsAdmin(isAdminOfGroup || false);
+          } else {
+            console.log('[DEBUG] Failed to get userData or userData.data/user:', userData);
           }
 
           // Fetch members and events using the slug
