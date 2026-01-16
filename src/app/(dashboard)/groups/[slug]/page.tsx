@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_URL } from '@/lib/constants';
+import { AUTH_TOKEN_KEY } from '@/lib/constants';
 export default function GroupDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const [group, setGroup] = useState<any>(null);
@@ -49,7 +50,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
 
   useEffect(() => {
     const fetchGroupData = async () => {
-      const token = localStorage.getItem('studymate_auth_token');
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
         toast.error('Please login to view group details');
         return;
@@ -76,7 +77,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
           });
           const userData = await userRes.json();
 
-          if (userData.success) {
+          if (userData.success && userData.data) {
             const currentUserId = userData.data._id;
             const isMemberOfGroup = groupData.data.members?.some((member: any) => member._id === currentUserId);
             const isAdminOfGroup = groupData.data.admins?.some((admin: any) => admin._id === currentUserId);
@@ -120,7 +121,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const handleJoinGroup = async () => {
     if (!group) return;
 
-    const token = localStorage.getItem('studymate_auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) {
       toast.error('Please login to join groups');
       return;
@@ -159,7 +160,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const handleLeaveGroup = async () => {
     if (!group) return;
 
-    const token = localStorage.getItem('studymate_auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) {
       toast.error('Please login to leave groups');
       return;
@@ -198,7 +199,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const handleCreateOrUpdateEvent = async () => {
     if (!group) return;
 
-    const token = localStorage.getItem('studymate_auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) {
       toast.error('Please login to create events');
       return;
@@ -257,7 +258,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ slug: st
   const handleDeleteEvent = async (eventId: string) => {
     if (!group) return;
 
-    const token = localStorage.getItem('studymate_auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token) {
       toast.error('Please login to delete events');
       return;

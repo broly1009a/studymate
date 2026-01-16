@@ -272,14 +272,18 @@ export default function GroupsPage() {
                 <Link key={group._id} href={`/groups/${group.slug}`}>
                   <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
                     <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5">
-                      <Image
-                        src={group.coverImage || '/default-cover.jpg'}
-                        alt={group.name}
-                        fill
-                        className="object-cover"
-                      />
+                      {group.coverImage ? (
+                        <Image
+                          src={group.coverImage}
+                          alt={group.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
+                      )}
                       <div className="absolute top-2 right-2">
-                        {group.visibility === 'private' ? (
+                        {group.isPublic === false ? (
                           <Badge className="bg-red-500/90">
                             <Lock className="h-3 w-3 mr-1" /> Riêng tư
                           </Badge>
@@ -292,13 +296,19 @@ export default function GroupsPage() {
                     </div>
                     <CardHeader className="relative">
                       <div className="absolute -top-8 left-4">
-                        <Image
-                          src={group.avatar || '/default-avatar.png'}
-                          alt={group.name}
-                          width={64}
-                          height={64}
-                          className="rounded-lg border-4 border-background bg-background"
-                        />
+                        {group.avatar ? (
+                          <Image
+                            src={group.avatar}
+                            alt={group.name}
+                            width={64}
+                            height={64}
+                            className="rounded-lg border-4 border-background bg-background object-cover"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg border-4 border-background bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                            <Users className="h-8 w-8 text-white" />
+                          </div>
+                        )}
                       </div>
                       <div className="pt-8">
                         <CardTitle className="text-lg">{group.name}</CardTitle>
