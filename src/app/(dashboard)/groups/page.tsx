@@ -1,415 +1,271 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { motion } from 'framer-motion'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+  Search,
+  Users,
+  Plus,
+  Globe,
+  Lock,
+} from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'
 import {
-  Search,
-  Plus,
-  Users,
-  Lock,
-  Globe,
-  MessageCircle,
-  X,
-  Maximize2,
-  Minimize2,
-  Video,
-  Image as ImageIcon,
-  File,
-  Loader2,
-} from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
-import { API_URL } from '@/lib/constants';
+  Card,
+  CardContent,
+} from '@/components/ui/card'
+
+import { API_URL } from '@/lib/constants'
+import { toast } from 'sonner'
+
 export default function GroupsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [visibilityFilter, setVisibilityFilter] = useState('all');
-  const [page, setPage] = useState(1);
+  /* ===== LOGIC GIỮ NGUYÊN ===== */
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [visibilityFilter, setVisibilityFilter] = useState('all')
+  const [page, setPage] = useState(1)
 
-  const [groups, setGroups] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
+  const [groups, setGroups] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [totalPages, setTotalPages] = useState(1)
 
-  // Fetch groups from API
   useEffect(() => {
     const fetchGroups = async () => {
-      const token = localStorage.getItem('studymate_auth_token');
+      const token = localStorage.getItem('studymate_auth_token')
       if (!token) {
-        toast.error('Please login to view groups');
-        return;
+        toast.error('Vui lòng đăng nhập')
+        return
       }
 
       try {
-        setLoading(true);
+        setLoading(true)
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: '12',
-        });
+          limit: '9',
+        })
 
-        if (searchQuery) {
-          params.append('search', searchQuery);
-        }
+        if (searchQuery) params.append('search', searchQuery)
+        if (categoryFilter !== 'all') params.append('category', categoryFilter)
+        if (visibilityFilter !== 'all') params.append('visibility', visibilityFilter)
 
-        if (categoryFilter !== 'all') {
-          params.append('category', categoryFilter);
-        }
+        const res = await fetch(`${API_URL}/groups?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
 
-        if (visibilityFilter !== 'all') {
-          params.append('visibility', visibilityFilter);
-        }
-
-        const response = await fetch(`${API_URL}/groups?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-
+        const data = await res.json()
         if (data.success) {
-          setGroups(data.data);
-          setTotalPages(data.pagination.pages);
+          setGroups(data.data)
+          setTotalPages(data.pagination.pages)
         }
-      } catch (error) {
-        console.error('Failed to fetch groups:', error);
+      } catch (err) {
+        console.error(err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    const debounceTimer = setTimeout(fetchGroups, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, categoryFilter, visibilityFilter, page]);
+    const t = setTimeout(fetchGroups, 300)
+    return () => clearTimeout(t)
+  }, [searchQuery, categoryFilter, visibilityFilter, page])
 
-  // Fetch stats from API
-  useEffect(() => {
-    const fetchStats = async () => {
-      const token = localStorage.getItem('studymate_auth_token');
-      if (!token) {
-        return; // Don't show error for stats, it's not critical
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/groups/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-
-        if (data.success) {
-          setStats(data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  // 👇 State cho phần Chat Dock
-  const [openChats, setOpenChats] = useState<any[]>([]);
-  const [minimized, setMinimized] = useState<string[]>([]);
-  const myGroups = groups.filter((g) => g.isJoined);
-
-  const toggleChat = (group: any) => {
-    setOpenChats((prev) =>
-      prev.some((c) => c.id === group.id)
-        ? prev.filter((c) => c.id !== group.id)
-        : [...prev, group]
-    );
-  };
-
-  const toggleMinimize = (id: string) => {
-    setMinimized((prev) =>
-      prev.includes(id)
-        ? prev.filter((mid) => mid !== id)
-        : [...prev, id]
-    );
-  };
-
+  /* ===== UI ===== */
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-[1200px] mx-auto px-4 pb-16">
+      {/* ===== Header ===== */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold">Nhóm học</h1>
-          <p className="text-muted-foreground mt-2">Tham gia nhóm và cùng nhau học tập</p>
+          <p className="text-muted-foreground mt-1">
+            Tham gia nhóm và cùng nhau học tập
+          </p>
         </div>
+
         <Link href="/groups/new">
-          <Button size="lg">
-            <Plus className="h-5 w-5 mr-2" />
-            Tạo nhóm mới
+          <Button className="gap-2 rounded-full">
+            <Plus size={18} /> Tạo nhóm +
           </Button>
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số nhóm</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalGroups || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Nhóm công khai</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{stats?.publicGroups || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Nhóm của tôi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500 cursor-pointer hover:underline"
-              onClick={() => alert('Sẽ hiện danh sách chat ở góc màn hình')}>
-              {stats?.myGroups || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng thành viên</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalMembers || 0}</div>
-          </CardContent>
-        </Card>
+      {/* ===== Tabs (CENTER – PILL STYLE) ===== */}
+      <div className="flex justify-center mb-6">
+        <div className="flex bg-muted rounded-full p-1">
+          <button className="px-6 py-2 rounded-full bg-background shadow text-sm font-medium">
+            Tìm nhóm
+          </button>
+          <button className="px-6 py-2 rounded-full text-sm text-muted-foreground">
+            Yêu cầu của tôi
+          </button>
+        </div>
       </div>
 
-      {/* Search & Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm nhóm..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger suppressHydrationWarning>
-                <SelectValue placeholder="Tất cả danh mục" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả danh mục</SelectItem>
-                <SelectItem value="Khoa học máy tính">Khoa học máy tính</SelectItem>
-                <SelectItem value="Toán học">Toán học</SelectItem>
-                <SelectItem value="Vật lý">Vật lý</SelectItem>
-                <SelectItem value="Hóa học">Hóa học</SelectItem>
-                <SelectItem value="Ngoại ngữ">Ngoại ngữ</SelectItem>
-                <SelectItem value="Kinh tế">Kinh tế</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="Ôn thi THPT">Ôn thi THPT</SelectItem>
-                <SelectItem value="Thiết kế">Thiết kế</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-              <SelectTrigger suppressHydrationWarning>
-                <SelectValue placeholder="Tất cả nhóm" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả nhóm</SelectItem>
-                <SelectItem value="public">Công khai</SelectItem>
-                <SelectItem value="private">Riêng tư</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ===== Filters ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-4 mb-6">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-10 rounded-full"
+            placeholder="Tìm kiếm bằng tên nhóm, ngành học"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
 
-      {/* Groups List */}
+        <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+          <SelectTrigger className="rounded-full">
+            <SelectValue placeholder="Tất cả nhóm" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả nhóm</SelectItem>
+            <SelectItem value="public">Công khai</SelectItem>
+            <SelectItem value="private">Riêng tư</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select>
+          <SelectTrigger className="rounded-full">
+            <SelectValue placeholder="Tất cả trường học" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trường</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="rounded-full">
+            <SelectValue placeholder="Tất cả ngành học" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả ngành</SelectItem>
+            <SelectItem value="Kỹ thuật phần mềm">Kỹ thuật phần mềm</SelectItem>
+            <SelectItem value="An toàn thông tin">An toàn thông tin</SelectItem>
+            <SelectItem value="Khoa học máy tính">Khoa học máy tính</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ===== Group Cards ===== */}
       {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center py-20 text-muted-foreground">
+          Đang tải nhóm...
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            {groups.length === 0 ? (
-              <Card className="col-span-full">
-                <CardContent className="py-12 text-center">
-                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">Không tìm thấy nhóm</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Thử điều chỉnh bộ lọc tìm kiếm hoặc tạo nhóm mới
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {groups.map((group) => (
+            <motion.div
+              key={group._id}
+              whileHover={{ y: -4 }}
+              transition={{ type: 'spring', stiffness: 260 }}
+            >
+              <Card className="overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition">
+                {/* Cover */}
+                <div className="relative h-36">
+                  <Image
+                    src={group.coverImage || '/images/default-cover.jpg'}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    {group.isPublic ? (
+                      <Badge className="rounded-full bg-blue-600">
+                        <Globe size={12} className="mr-1" />
+                        Nhóm công khai
+                      </Badge>
+                    ) : (
+                      <Badge className="rounded-full bg-gray-700">
+                        <Lock size={12} className="mr-1" />
+                        Nhóm riêng tư
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <CardContent className="pt-10 pb-4">
+                  {/* Avatar */}
+                  <div className="-mt-16 mb-3">
+                    <Image
+                      src={group.avatar || '/images/default-avatar.png'}
+                      alt=""
+                      width={64}
+                      height={64}
+                      className="rounded-xl border-4 border-white bg-white"
+                    />
+                  </div>
+
+                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">
+                    {group.name}
+                  </h3>
+
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {group.description}
                   </p>
-                  <Link href="/groups/new">
-                    <Button>Tạo nhóm mới</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : (
-              groups.map((group) => (
-                <Link key={group._id} href={`/groups/${group.slug}`}>
-                  <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full overflow-hidden">
-                    <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5">
-                      {group.coverImage ? (
-                        <Image
-                          src={group.coverImage}
-                          alt={group.name}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
-                      )}
-                      <div className="absolute top-2 right-2">
-                        {group.isPublic === false ? (
-                          <Badge className="bg-red-500/90">
-                            <Lock className="h-3 w-3 mr-1" /> Riêng tư
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-500/90">
-                            <Globe className="h-3 w-3 mr-1" /> Công khai
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <CardHeader className="relative">
-                      <div className="absolute -top-8 left-4">
-                        {group.avatar ? (
-                          <Image
-                            src={group.avatar}
-                            alt={group.name}
-                            width={64}
-                            height={64}
-                            className="rounded-lg border-4 border-background bg-background object-cover"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-lg border-4 border-background bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                            <Users className="h-8 w-8 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="pt-8">
-                        <CardTitle className="text-lg">{group.name}</CardTitle>
-                        <CardDescription className="line-clamp-2 mt-2">
-                          {group.description}
-                        </CardDescription>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                </Link>
-              ))
-            )}
-          </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mb-6">
-              <Button
-                variant="outline"
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-              >
-                Trước
-              </Button>
-              <div className="text-sm text-muted-foreground">
-                Trang {page} của {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-              >
-                Sau
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge variant="secondary">Kỹ thuật phần mềm</Badge>
+                    <Badge variant="secondary">An toàn thông tin</Badge>
+                  </div>
 
-      {/* Floating MyGroups Chat Dock */}
-      <div className="fixed bottom-6 right-6 flex gap-4 z-50">
-        <AnimatePresence>
-          {openChats.map((group) => {
-            const isMin = minimized.includes(group.id);
-            return (
-              <motion.div
-                key={group.id}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 40 }}
-                className="w-80"
-              >
-                <Card className="shadow-2xl border rounded-2xl overflow-hidden">
-                  <CardHeader className="flex justify-between items-center bg-primary/10 p-2">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src={group.avatar}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="rounded-md"
-                      />
-                      <span className="font-semibold text-sm">{group.name}</span>
+                  {/* Footer */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Users size={14} />
+                      {group.memberCount || 36} / 40
                     </div>
                     <div className="flex gap-2">
-                      <Button size="icon" variant="ghost" onClick={() => toggleMinimize(group.id)}>
-                        {isMin ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => toggleChat(group)}>
-                        <X size={16} />
+                      <Link href={`/groups/${group.slug}`}>
+                        <Button variant="outline" size="sm" className="rounded-full">
+                          Xem chi tiết
+                        </Button>
+                      </Link>
+                      <Button size="sm" className="rounded-full">
+                        Tham gia
                       </Button>
                     </div>
-                  </CardHeader>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
-                  {!isMin && (
-                    <>
-                      <CardContent className="h-64 overflow-y-auto space-y-2 p-3">
-                        <div className="text-sm text-muted-foreground">
-                          Chat history (demo) — future messages will appear here.
-                        </div>
-                      </CardContent>
-                      <CardContent className="flex gap-2 p-2 border-t">
-                        <Button size="icon" variant="ghost">
-                          <ImageIcon size={18} />
-                        </Button>
-                        <Button size="icon" variant="ghost">
-                          <File size={18} />
-                        </Button>
-                        <Button size="icon" variant="ghost">
-                          <Video size={18} />
-                        </Button>
-                        <Input placeholder="Type a message..." className="flex-1" />
-                      </CardContent>
-                    </>
-                  )}
-                </Card>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
+      {/* ===== Pagination ===== */}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-3 mt-10">
+          <Button
+            variant="outline"
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Trước
+          </Button>
+          <span className="text-sm text-muted-foreground flex items-center">
+            Trang {page} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={page === totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            Sau
+          </Button>
+        </div>
+      )}
     </div>
-  );
+  )
 }

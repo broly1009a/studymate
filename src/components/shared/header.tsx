@@ -2,10 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, LogOut, Settings, Home, Users as UsersIcon, MessageCircle, MessageSquare, UsersRound, Trophy, PenSquare, Crown, UserPlus } from 'lucide-react';
+import {
+  Search,
+  User,
+  LogOut,
+  Settings,
+  MessageCircle,
+  UsersRound,
+  Trophy,
+  MessageSquare,
+  Crown,
+  UserPlus,
+  Home,
+  Users as UsersIcon,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +33,12 @@ import { vi } from '@/lib/i18n/vi';
 import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/constants';
 
-// Main navigation items for header
 const mainNavigation = [
   { name: 'Trang chủ', href: '/home', icon: Home },
   { name: 'Bạn học', href: '/matches', icon: UsersIcon },
-  { name: 'Diễn đàn', href: '/forum', icon: MessageSquare },
   { name: 'Nhóm học', href: '/groups', icon: UsersRound },
-  { name: 'Cuộc thi', href: '/competitions', icon: Trophy },
-  { name: 'Blog', href: '/blog', icon: PenSquare },
+  { name: 'Sự kiện', href: '/competitions', icon: Trophy },
+  { name: 'Diễn đàn', href: '/forum', icon: MessageSquare },
 ];
 
 export function Header() {
@@ -37,198 +47,187 @@ export function Header() {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [mounted, setMounted] = useState(false);
 
-  // Fix hydration mismatch - only check pathname after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
-  // Fetch pending partner requests count
   useEffect(() => {
     const fetchPendingCount = async () => {
       if (!user?.id) return;
-      
       try {
-        const response = await fetch(`${API_URL}/partner-requests?userId=${user.id}&type=received&status=pending`);
-        const data = await response.json();
-        if (data.success) {
-          setPendingRequestsCount(data.data.length);
-        }
-      } catch (error) {
-        console.error('Failed to fetch pending requests count:', error);
-      }
+        const res = await fetch(
+          `${API_URL}/partner-requests?userId=${user.id}&type=received&status=pending`
+        );
+        const data = await res.json();
+        if (data.success) setPendingRequestsCount(data.data.length);
+      } catch {}
     };
 
     fetchPendingCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingCount, 30000);
-    return () => clearInterval(interval);
+    const i = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(i);
   }, [user?.id]);
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(' ')
       .map(n => n[0])
       .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+      .slice(0, 2)
+      .toUpperCase();
 
-  const getAvatarUrl = () => {
-    // console.log('Fetching avatar URL for user:', user);
-    if (user?.avatar) {
-      // console.log('User avatar found:', user.avatar);
-      return user.avatar;
-    }
-    if (user?.profileImages && user.profileImages.length > 0) {
-      // console.log('Using profile image as avatar:', user.profileImages[0].url);
-      return user.profileImages[0]?.url;
-    }
-   // console.log('No avatar or profile images found for user.');
-    return undefined;
-  };
+  const getAvatarUrl = () =>
+    user?.avatar || user?.profileImages?.[0]?.url;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-      <div className="w-full flex h-16 items-center justify-between px-6">
-        {/* Left Section: Logo + Navigation */}
-        <div className="flex items-center gap-6">
-          {/* Logo */}
-          <Link href="/home" className="flex items-center gap-1 font-bold text-xl flex-shrink-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#6059f7] to-[#4f47d9] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
-            </div>
-            <span className="text-[#6059f7]">StudyMate</span>
-          </Link>
+    <header className="sticky top-0 z-50 w-full border-b bg-white">
+      <div className="relative mx-auto flex h-16 max-w-[1440px] items-center px-6">
 
-          {/* Main Navigation Menu */}
-          <nav className="hidden xl:flex items-center gap-1">
-            {mainNavigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-[#6059f7] text-white shadow-md"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Center Section: Search Bar */}
-        <div className="hidden md:flex flex-1 max-w-md mx-6">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Tìm kiếm..."
-              className="pl-10 w-full bg-gray-50 border-gray-200 focus:bg-white focus:border-[#6059f7] transition-colors"
-            />
+        {/* LEFT – LOGO */}
+        <Link
+          href="/home"
+          className="flex items-center gap-2 font-bold text-lg"
+        >
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6b63ff] to-[#5a52e6] flex items-center justify-center">
+            <span className="text-white font-bold">S</span>
           </div>
-        </div>
+          <span className="text-gray-900">StudyMate</span>
+        </Link>
 
-        {/* Right Section: Premium + Message + Notification + User */}
-        <div className="flex items-center gap-3">
-          {/* Premium Button */}
+        {/* CENTER – NAVIGATION */}
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 lg:flex items-center gap-8">
+          {mainNavigation.map(item => {
+            const isActive =
+              pathname === item.href ||
+              pathname.startsWith(item.href + '/');
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'relative flex items-center gap-1 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'text-[#6b63ff]'
+                    : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {item.name}
+
+                {isActive && (
+                  <span className="absolute -bottom-4 left-0 h-[2px] w-full rounded-full bg-[#6b63ff]" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* RIGHT – ACTIONS */}
+        <div className="ml-auto flex items-center gap-3">
+       {/* Premium */}
+<Link href="/subscription" className="hidden md:block">
+  <div
+    className="
+      rounded-xl p-[2px]
+      bg-gradient-to-b from-[#8f85ff] to-[#5a52e6]
+      shadow-[0_8px_20px_rgba(90,82,230,0.45)]
+      hover:shadow-[0_10px_26px_rgba(90,82,230,0.6)]
+      transition-all
+    "
+  >
+    <div
+      className="
+        flex items-center gap-2
+        rounded-xl px-6 py-2
+        text-sm font-bold tracking-wide text-white
+        bg-gradient-to-b from-[#9b92ff] to-[#6b63ff]
+        shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]
+        hover:brightness-110
+        active:translate-y-[1px]
+        transition-all
+      "
+    >
+      PREMIUM
+      <Crown className="h-4 w-4 fill-white" />
+    </div>
+  </div>
+</Link>
+
+          {/* Messages */}
           <Link
-            href="/subscription"
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:from-amber-600 hover:to-orange-600"
+            href="/messages"
+            className={cn(
+              'rounded-xl p-2 transition',
+              mounted &&
+                (pathname === '/messages' ||
+                  pathname.startsWith('/messages/'))
+                ? 'bg-[#6b63ff] text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            )}
+            suppressHydrationWarning
           >
-            <Crown className="w-4 h-4 animate-pulse" />
-            <span>Premium</span>
+            <MessageCircle className="h-5 w-5" />
           </Link>
 
-          {/* Message & Partner Requests Icons */}
-          <div className="hidden lg:flex items-center gap-1 px-3 border-r">
-            <Link
-              href="/messages"
-              className={cn(
-                "p-2 rounded-lg transition-all",
-                mounted && (pathname === '/messages' || pathname.startsWith('/messages/'))
-                  ? "bg-[#6059f7] text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
-              )}
-              title="Tin nhắn"
-              suppressHydrationWarning
-            >
-              <MessageCircle className="w-5 h-5" />
-            </Link>
-            
-            <Link
-              href="/partner-requests"
-              className={cn(
-                "p-2 rounded-lg transition-all relative",
-                mounted && (pathname === '/partner-requests' || pathname.startsWith('/partner-requests/'))
-                  ? "bg-[#6059f7] text-white"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-[#6059f7]"
-              )}
-              title="Yêu cầu học cùng"
-              suppressHydrationWarning
-            >
-              <UserPlus className="w-5 h-5" />
-              {pendingRequestsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                  {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
-                </span>
-              )}
-            </Link>
-          </div>
+          {/* Partner requests */}
+          <Link
+            href="/partner-requests"
+            className="relative rounded-xl p-2 text-gray-600 hover:bg-gray-100"
+          >
+            <UserPlus className="h-5 w-5" />
+            {pendingRequestsCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+              </span>
+            )}
+          </Link>
 
-          {/* Notification Bell */}
           <NotificationBell />
 
-          {/* User Menu */}
+          {/* Avatar */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-[#6059f7] hover:ring-offset-2 transition-all">
+              <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage 
-                    src={getAvatarUrl()} 
-                    alt={user?.fullName}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="bg-[#6059f7] text-white font-semibold">
-                    {user?.fullName ? getInitials(user.fullName) : 'U'}
+                  <AvatarImage src={getAvatarUrl()} />
+                  <AvatarFallback className="bg-[#6b63ff] text-white">
+                    {user?.fullName
+                      ? getInitials(user.fullName)
+                      : 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.fullName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
+
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{user?.fullName}</p>
+                  <p className="text-xs text-muted-foreground">
                     {user?.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="cursor-pointer">
+                <Link href="/profile">
                   <User className="mr-2 h-4 w-4" />
-                  <span>{vi.common.profile}</span>
+                  {vi.common.profile}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
+                <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>{vi.common.settings}</span>
+                  {vi.common.settings}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-destructive"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{vi.common.logout}</span>
+                {vi.common.logout}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -237,4 +236,3 @@ export function Header() {
     </header>
   );
 }
-
