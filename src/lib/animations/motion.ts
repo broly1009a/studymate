@@ -3,7 +3,7 @@ import { Variants } from 'framer-motion'
 /* ===============================
    EASING CHUNG (cao cấp)
 ================================ */
-export const easeOutExpo = [0.16, 1, 0.3, 1]
+export const easeOutExpo = [0.16, 1, 0.3, 1] as const
 
 /* ===============================
    Fade + slide up (SECTION / HERO)
